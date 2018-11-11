@@ -13,6 +13,9 @@ class Edge:
         assert(type(probability) == float)
         self.tail = tail
         self.head = head
+        """ we first identify the node v that e points to, and then set
+        p(e) = 1/i, where i denotes the in-degree of v. So this is effectively
+        the outdegree of the tranpose graph"""
         self.probability = probability
 
 def calculate_lambda(n, k, l, e):
@@ -102,7 +105,7 @@ def kpt_estimation(graph, k):
 
 def find_k_seeds(graph, k):
     kpt = kpt_estimation(graph, k)
-    lambda_var = calculate_lambda(len(graph.keys()), k, L_CONSTANT, EPSILON_CONSTANT)
+    lambda_var = calculate_lambda(len(graph), k, L_CONSTANT, EPSILON_CONSTANT)
     theta = lambda_var / kpt
     return node_selection(graph, k ,theta)
 
