@@ -829,3 +829,8 @@ ASALocalRun/
 .localhistory/
 
 # End of https://www.gitignore.io/api/c++,cuda,latex,macos,python,windows,visualstudio,visualstudiocode
+
+
+datasets/twitter/*
+!datasets/twitter/README.md
+datasets/twitter.pickle

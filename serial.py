@@ -1,4 +1,6 @@
 import math
+import os
+import pickle
 import random
 from collections import defaultdict
 
@@ -6,20 +8,22 @@ L_CONSTANT = 1
 EPSILON_CONSTANT = 0.1
 K_CONSTANT = 2
 
+TWITTER_DATASET_FILEPATH = './datasets/twitter'
+TWITTER_DATASET_PICKLE_FILEPATH = './datasets/twitter.pickle'
+EDGE_FILE_SUFFIX = '.edges'
+
 class Edge:
-    def __init__(self, tail, head, probability):
-        assert(type(tail) == int)
-        assert(type(head) == int)
-        assert(type(probability) == float)
+    def __init__(self, tail, head):
+        assert(type(tail) == str)
+        assert(type(head) == str)
         self.tail = tail
         self.head = head
-        """ we first identify the node v that e points to, and then set
-        p(e) = 1/i, where i denotes the in-degree of v. So this is effectively
-        the outdegree of the tranpose graph"""
-        self.probability = probability
+
+    def set_weight(self, weight):
+        assert(type(weight) == float)
+        self.weight = weight
 
 def calculate_lambda(n, k, l, e):
-    # λ = (8 + 2ε)n · (ℓ log n + log nCk  + log 2) · ε ^ -2
     return (8.0 + 2 * e) * n * (l * math.log(n) + math.log(comb(n, k)) + math.log(2)) * e ** -2
 
 def comb(n,r):
@@ -27,7 +31,8 @@ def comb(n,r):
     return f(n) / f(r) / f(n-r)
 
 def reachable(start, graph):
-    """ Performs a DFS search for all reachable nodes and returns a set of all visited """
+    """ Performs a DFS search for all reachable nodes and returns a set of
+    all visited """
     visited = set()
     stack = [start] # We are using stack for O(1) append and pop
     while stack:
@@ -109,11 +114,41 @@ def find_k_seeds(graph, k):
     theta = lambda_var / kpt
     return node_selection(graph, k ,theta)
 
-def parse_dataset(filename):
+def parse_twitter_dataset():
     """ TODO: Our graph is represented as a mapping of node to its list of Edges. We 
     want this graph to represent G_t """
-    return {}
+    if os.path.isfile(TWITTER_DATASET_PICKLE_FILEPATH):
+        with open(TWITTER_DATASET_PICKLE_FILEPATH, "rb") as fp:
+            G_t = pickle.load(fp)
+    else:
+        G_t = defaultdict(list)
+        counter = 0
+        for filename in os.listdir(TWITTER_DATASET_FILEPATH):
+            if filename.endswith(EDGE_FILE_SUFFIX):
+                focal_node = filename.split('.')[0]
+                filepath = os.path.join(TWITTER_DATASET_FILEPATH, filename)
+                with open(filepath, "r") as fp:
+                    print("Processing {}: {}".format(filename, counter))
+                    counter += 1
+                    line = fp.readline()
+                    while line:
+                        tail, head = line.split()
+                        G_t[head].append(Edge(head, tail))
+                        G_t[head].append(Edge(head, focal_node))
+                        G_t[tail].append(Edge(tail, focal_node))
+                        line = fp.readline()
+        """ we first identify the node v that e points to, and then set p(e) = 1/i,
+        where i denotes the in-degree of v. So this is effectively the outdegree
+        of the tranpose graph"""
+        count = 0
+        for edges in G_t.values():
+            count += 1
+            print(count)
+            for edge in edges:
+                edge.set_weight(1.0/len(edges))
+        pickle.dump(G_t, open(TWITTER_DATASET_PICKLE_FILEPATH, 'wb'))
+    return G_t
 
 if __name__ == "__main__":
-    graph = parse_dataset("")
+    graph = parse_twitter_dataset()
     print(find_k_seeds(graph, K_CONSTANT))
