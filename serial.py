@@ -30,6 +30,7 @@ def comb(n,r):
     f = math.factorial
     return f(n) / f(r) / f(n-r)
 
+	""" Now defunct """
 def reachable(start, graph):
     """ Performs a DFS search for all reachable nodes and returns a set of
     all visited """
@@ -42,11 +43,12 @@ def reachable(start, graph):
             for edge in graph[curr]:
                 stack.append(edge.head)
     return visited
-
+	
 def width(graph, nodes):
     """ Returns the number of edges in a graph """
     return sum(len(graph[node]) for node in nodes)
 
+	""" Now defunct """
 def randomly_pruned_graph(graph):
     """ Randomly prunes a graph by removing an edge with 1 - p(e) probability """
     pruned_graph = defaultdict(list)
@@ -58,8 +60,20 @@ def randomly_pruned_graph(graph):
 
 def random_reverse_reachable_set(graph):
     """ Returns a set of reverse reachable nodes from a random seed node """
-    pruned_graph = randomly_pruned_graph(graph)
-    return reachable(pruned_graph, random.choice(pruned_graph.keys()))
+	n = len(graph)
+	start = random.choice(graph.keys())
+	stack = [start]
+	visited = dict()
+	while stack:
+		curr = stack.pop()
+		if curr not in visited:
+			visited.add(curr)
+			for edge in graph[curr]:
+				if random.random() < edge.probability:
+					stack.append(edge.head)
+					visited[curr].append(edge)
+	return visited
+					
 
 def find_most_common_node(rr_sets):
     counts = defaultdict(int)
