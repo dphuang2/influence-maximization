@@ -89,6 +89,77 @@ def find_most_common_node(rr_sets):
                 maximum = counts[node]
     return most_common_node, exists_in_set[most_common_node]
             
+def node_selection_experimental(graph, k, theta):
+    # Initialize empty set R
+    R = {}
+    # Generate theta random RR sets and insert them into R
+    for i in range(theta):
+        R[i] = random_reverse_reachable_set(graph)
+    # Initialize a empty node set S_k
+    S_k = []
+	
+	R_used = {}
+    for j in range(k):
+        # Identify node v_j that covers the most RR sets in R
+        v_j, sets_to_remove = find_most_common_node(R)
+        # Add v_j into S_k
+        S_k.append(v_j)
+        # Remove from R all RR sets that are covered by v_j
+        for set_id in sets_to_remove:
+			R_used = R[set_id]
+            del R[set_id]
+    return S_k, R, R_used
+	
+def phase_3_experimental(R,R_used,S_k,k,max_iter):
+	go = True
+	count = 0
+	
+	while go:
+		# Calculate marginal contributions and which sets make them up
+		marginal_contribution = defaultdict(int)
+		marginal_count = defaultdict(int)
+		seeds_per_RR = defaultdict(int)
+		for set_id, rr_set in R_used.items():
+			num_seeds = 0
+			unique_seed = -1
+			for node in rr_set:
+				if node in S_k:
+					num_seeds += 1
+					unique_seed = node
+					if num_seeds > 1:
+						break
+			if num_seeds == 1:
+				marginal_contribution[unique_seed].append[set_id]
+				if unique_seed in marginal_count:
+					marginal_count[unique_seed] += 1
+				else:
+					marginal_count[unique_seed] = 0
+		# Marginal number of RR sets each seed provides is tabulated
+		# Now select one seed to return and add its sets in marginal_contribution
+		# back into R before finding a new k^th seed
+		
+		leaving_seed = min(marginal_count, key = marginal_count.get)
+		S_k.remove(leaving_seed)
+		for set_id in marginal_contribution[leaving_seed]:
+			R[set_id] = R_used[set_id]
+			del R_used[set_id]
+		
+		# Select new k^th seed
+		
+		node, sets_to_remove = find_most_common_node(R)
+		S_k.append(node)
+		for set_id in sets_to_remove:
+			R_used[set_id] = R[set_id]
+			del R[set_id]
+		
+		count += 1
+		
+		if node == leaving_seed || count >= max_iter:
+			go = False
+	return S_k
+		
+
+	
 def node_selection(graph, k, theta):
     # Initialize empty set R
     R = {}
@@ -106,7 +177,9 @@ def node_selection(graph, k, theta):
         for set_id in sets_to_remove:
             del R[set_id]
     return S_k
-
+	
+	
+	
 def kpt_estimation(graph, k):
     n = len(graph)
     m = sum(len(edges) for edges in graph.values())
