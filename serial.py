@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from scipy.special import comb
 from generate_random_graph import generate_filepath_pickle
-from timer import timeit, runtimes, runtimes_to_csv
+from timer import time_find_k_seeds, runtimes, runtimes_to_csv, time_cumulatively, cumulative_runtimes_to_csv
 
 L_CONSTANT = 1
 EPSILON_CONSTANT = 0.2
@@ -175,7 +175,7 @@ def kpt_estimation(graph, k):
             return n * cum_sum / (2 * ci)
     return 1.0
 
-@timeit
+@time_find_k_seeds
 def find_k_seeds(graph, k):
     kpt = kpt_estimation(graph, k)
     lambda_var = calculate_lambda(len(graph[1]) - 1, k, L_CONSTANT, EPSILON_CONSTANT)
@@ -183,8 +183,8 @@ def find_k_seeds(graph, k):
     return node_selection(graph, k ,theta)
 
 if __name__ == "__main__":
-    for i in range(20, 101):
-        for j in range(100):
+    for i in range(20, 41):
+        for j in range(50):
             graph = pickle.load(open(generate_filepath_pickle(i), "rb"))
             print(find_k_seeds(graph, K_CONSTANT))
     with open("runtimes.csv", "w") as fp:
