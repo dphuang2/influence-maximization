@@ -7,6 +7,8 @@
 
 cd $PBS_O_WORKDIR
 
+echo "Changing directory to $PBS_O_WORKDIR"
+
 mkdir scratch/$PBS_JOBID
 
-aprun -n 1 -N 1 ./test.py > scratch/$PBD_JOBID/out.$PBS_JOBID
+aprun -n 1 -N 1 ./run.sh > scratch/$PBS_JOBID/out.$PBS_JOBID
