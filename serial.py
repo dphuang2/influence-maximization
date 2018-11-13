@@ -183,8 +183,8 @@ def find_k_seeds(graph, k):
     return node_selection(graph, k ,theta)
 
 if __name__ == "__main__":
-    for i in range(20, 41):
-        for j in range(50):
+    for i in range(20, 101):
+        for j in range(100):
             graph = pickle.load(open(generate_filepath_pickle(i), "rb"))
             print(find_k_seeds(graph, K_CONSTANT))
     with open("runtimes.csv", "w") as fp:
