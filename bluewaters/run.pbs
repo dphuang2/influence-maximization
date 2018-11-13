@@ -1,0 +1,12 @@
+#!/bin/bash
+#PBS -l nodes=1:ppn=1:xk
+#PBS -l walltime=01:00:00
+#PBS -N testjob
+#PBS -e scratch/$PBS_JOBID/err
+#PBS -o scratch/$PBS_JOBID/out
+
+cd $PBS_O_WORKDIR
+
+mkdir scratch/$PBS_JOBID
+
+aprun -n 1 -N 1 ./test.py > scratch/$PBD_JOBID/out.$PBS_JOBID
