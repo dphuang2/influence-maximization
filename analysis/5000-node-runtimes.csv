@@ -1,0 +1,8 @@
+Function,Total Time (s),Total Time (%),Execution count
+random_reverse_reachable_set,245.3802035,0.802326384,786938
+width,0.133908749,0.000437845,4177
+kpt_estimation,1.571370125,0.005137952,1
+calculate_lambda,0.00011301,3.69513E-07,1
+find_most_common_node,53.72775483,0.175675114,2
+node_selection,304.264365,0.994861542,1
+find_k_seeds,305.8358898,1,1
