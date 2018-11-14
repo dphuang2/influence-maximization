@@ -6,8 +6,10 @@ import random
 from collections import defaultdict
 
 from scipy.special import comb
+
 from generate_random_graph import generate_filepath_pickle
-from timer import time_find_k_seeds, runtimes, runtimes_to_csv, time_cumulatively, cumulative_runtimes_to_csv
+from timer import (cumulative_runtimes, execution_counts,
+                   find_k_seeds_runtimes, runtimes, timeit, to_csv)
 
 L_CONSTANT = 1
 EPSILON_CONSTANT = 0.2
@@ -87,6 +89,7 @@ def phase_3_experimental(R,R_used,S_k,k,max_iter):
             go = False
     return S_k
 
+@timeit
 def width(graph, nodes):
     """ Returns the number of edges in a graph """
     count = 0
@@ -96,6 +99,7 @@ def width(graph, nodes):
         count += value_end - value_start
     return count
 
+@timeit
 def find_most_common_node(rr_sets):
     counts = defaultdict(int)
     exists_in_set = defaultdict(list)
@@ -110,6 +114,8 @@ def find_most_common_node(rr_sets):
                 maximum = counts[node]
     return most_common_node, exists_in_set[most_common_node]
         
+        
+@timeit
 def node_selection(graph, k, theta):
     # Initialize empty set R
     R = {}
@@ -128,9 +134,11 @@ def node_selection(graph, k, theta):
             del R[set_id]
     return S_k
 
+@timeit
 def calculate_lambda(n, k, l, e):
     return (8.0 + 2 * e) * n * (l * math.log(n) + math.log(comb(n, k)) + math.log(2)) * e ** -2
     
+@timeit
 def random_reverse_reachable_set(graph):
     """ Returns a set of reverse reachable nodes from a random seed node """
     n = len(graph[1]) - 1
@@ -160,6 +168,7 @@ def random_reverse_reachable_set(graph):
                     stack.append(edges[i])
     return visited
     
+@timeit
 def kpt_estimation(graph, k):
     n = len(graph[1]) - 1
     m = len(graph[0])
@@ -175,7 +184,7 @@ def kpt_estimation(graph, k):
             return n * cum_sum / (2 * ci)
     return 1.0
 
-@time_find_k_seeds
+@timeit
 def find_k_seeds(graph, k):
     kpt = kpt_estimation(graph, k)
     lambda_var = calculate_lambda(len(graph[1]) - 1, k, L_CONSTANT, EPSILON_CONSTANT)
@@ -183,10 +192,23 @@ def find_k_seeds(graph, k):
     return node_selection(graph, k ,theta)
 
 if __name__ == "__main__":
-    for i in range(20, 41):
-        for j in range(50):
+    for i in range(5000, 5001):
+        for j in range(1):
             graph = pickle.load(open(generate_filepath_pickle(i), "rb"))
             print(find_k_seeds(graph, K_CONSTANT))
+
+    with open("execution_counts.csv", "w") as fp:
+
+        fp.write(to_csv(execution_counts))
+
+    with open("cumulative_runtimes.csv", "w") as fp:
+
+        fp.write(to_csv(cumulative_runtimes))
+
+    with open("find_k_seeds_runtimes.csv", "w") as fp:
+
+        fp.write(to_csv(find_k_seeds_runtimes))
+
     with open("runtimes.csv", "w") as fp:
-        fp.write(runtimes_to_csv())
-    
+
+        fp.write(to_csv(runtimes))

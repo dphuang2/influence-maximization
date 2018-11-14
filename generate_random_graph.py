@@ -1,6 +1,8 @@
 import math
 import pickle
 import random
+from collections import defaultdict
+import numpy as np
 
 counter = -1
 DATASETS_FILEPATH = './datasets/'
@@ -54,6 +56,7 @@ def generate_random_graph(num_nodes):
 
     # Generating adjacency matrix
     adjacency_matrix = [[0] * num_nodes for i in range(num_nodes)]
+    sums = defaultdict(int)
     stack = [root]
     visited = set()
     while stack:
@@ -63,21 +66,23 @@ def generate_random_graph(num_nodes):
             for node in curr.edges:
                 stack.append(node)
                 adjacency_matrix[curr.id][node.id] = 1.0
+                sums[curr.id] += 1
 
     # Adjacency matrix -> CSR
     offset = 0
     csr = [[] for i in range(3)]
-    for row in range(len(adjacency_matrix)):
-        edges = adjacency_matrix[row]
-        outdegree = sum(edges)
-        csr[1].append(offset)
-        for col in range(len(edges)):
-            if outdegree > 0:
-                edges[col] /= outdegree
-                if edges[col] > 0:
-                    csr[0].append(edges[col])
-                    csr[2].append(col)
-                    offset += 1
+    nonzeros = np.nonzero(adjacency_matrix)
+    last_row = -1
+    for i in range(len(nonzeros[0])):
+        row = nonzeros[0][i]
+        col = nonzeros[1][i]
+        outdegree = sums[row]
+        if last_row != row:
+            csr[1].append(offset)
+        csr[0].append(adjacency_matrix[row][col] / outdegree)
+        csr[2].append(col)
+        offset += 1
+        last_row = row
     csr[1].append(offset)
 
     # Write to txt and pickle
@@ -89,6 +94,6 @@ def generate_random_graph(num_nodes):
         pickle.dump(csr, fp)
 
 if __name__ == "__main__":
-    for num_nodes in range(20,101):
+    for num_nodes in range(5000,5001):
         generate_random_graph(num_nodes)
         counter = -1
