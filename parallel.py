@@ -71,9 +71,16 @@ def node_selection(graph, k, theta):
     generate_rr_sets = mod.get_function('generate_rr_sets')
 
     # Initialize all the necessary device memory
-    data = np.asarray(graph[0]).astype(np.float32)
-    rows = np.asarray(graph[1]).astype(np.int32)
-    cols = np.asarray(graph[2]).astype(np.int32)
+    data_cpu = np.asarray(graph[0]).astype(np.float32)
+    rows_cpu = np.asarray(graph[1]).astype(np.int32)
+    cols_cpu = np.asarray(graph[2]).astype(np.int32)
+    data_gpu = driver.mem_alloc(data_cpu.size * data_cpu.dtype.itemsize)
+    rows_gpu = driver.mem_alloc(rows_cpu.size * rows_cpu.dtype.itemsize)
+    cols_gpu = driver.mem_alloc(cols_cpu.size * cols_cpu.dtype.itemsize)
+    driver.memcpy_htod(data_gpu, data_cpu)
+    driver.memcpy_htod(rows_gpu, rows_cpu)
+    driver.memcpy_htod(cols_gpu, cols_cpu)
+
     num_nonzeros = np.int32(len(graph[0]))
     num_nodes = np.int32(len(graph[1]) - 1)
     dim_block = (BLOCK_SIZE, 1, 1)
@@ -99,8 +106,8 @@ def node_selection(graph, k, theta):
         dim_grid = (math.ceil(num_rows_to_process / BLOCK_SIZE), 1, 1)
 
         # Launch kernel
-        generate_rr_sets(driver.In(data), driver.In(rows), driver.In(cols), driver.Out(
-            processed_rows), num_nodes, num_nonzeros, num_rows_to_process, rng_states, grid=dim_grid, block=dim_block)
+        generate_rr_sets(data_gpu, rows_gpu, cols_gpu, driver.Out(processed_rows), num_nodes,
+                         num_nonzeros, num_rows_to_process, rng_states, grid=dim_grid, block=dim_block)
 
         # Update the number of rows that we processed
         non_zeros = np.transpose(np.nonzero(processed_rows))
