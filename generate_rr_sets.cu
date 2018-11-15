@@ -2,6 +2,7 @@
 
 extern "C"
 {
+#define AUXILIARY_NODE_ID -1
 
     typedef struct node
     {
@@ -31,9 +32,12 @@ extern "C"
         behavior of a stack, I am using a linked list*/
             int randomNodeId = ceil(numNodes * curand_uniform(&state)) - 1;
             node *stack = new node(randomNodeId);
+            node *auxiliary = new node(AUXILIARY_NODE_ID);
+            auxiliary->next = stack;
+            stack->prev = auxiliary;
 
             // Returns false when stack is NULL
-            while (stack)
+            while (stack->id != AUXILIARY_NODE_ID)
             {
                 // pop from stack
                 int currentNodeId = stack->id;
@@ -55,6 +59,7 @@ extern "C"
                         {
                             // append to stack
                             stack->next = new node(cols[i]);
+                            stack->next->prev = stack;
                             stack = stack->next;
                         }
                     }

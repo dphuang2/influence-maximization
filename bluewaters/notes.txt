@@ -1,0 +1,41 @@
+NOTE:
+ - Compiling with the system-site-packages version of pycuda yields some
+ compilation errors so we must use virtualenv + a new version of pycuda
+ straight from the package repo (2018.1.1). The specific error that I was
+ running into was here:
+ https://github.com/inducer/pycuda/blob/master/pycuda/compiler.py#L44
+ (althought not represented in the Github Repo, there was a difference in
+ this line). This line appended an option to the cmdline variable that was
+ invalid (For some reason this option is not seen in the Github repo nor
+ could I find it any commit of the repo. Whoever installed pycuda onto Blue
+ Waters must have made a custom package for it and something else changed
+ causing it to be incorrect. Doesn't matter—we move on!)
+
+ - Initializing a numpy array of shape (theta, n) yields 41.8895 GB if theta
+ is 837790 and n is 50000 (relatively small and reasonable numbers), which is
+ way too big. Its big enough to trigger a memory error from numpy. To
+ counteract this, we will do batch processing. We will do this dynamically by
+ taking the size of RAM on the computer and dividing it in half
+ 
+ NOT A VERY HELPFUL POINT!
+ - While trying to use cuda-gdb to debug the kernel, I ran into an issue
+ where it told me that the '.venv/bin/python' binary is not in executable
+ format. The command that I ran was 'cuda-gdb --args python -m pycuda.debug
+ parallel.py' according to
+ https://wiki.tiker.net/PyCuda/FrequentlyAskedQuestions. From what I searched
+ online, this is because the python binary is 'fat'
+ (https://unconj.ca/blog/setting-up-gdb-for-debugging-python-on-os-x.html)
+ and gdb goes not support that sort of debugging. The popular solution to
+ this is to use a tool called lipo. But the problem with lipo was that it was
+ not on blue waters. Instead, I called the command 'cuda-gdb --args bash
+ .venv/bin/python -m pycuda.debug parallel.py' so that gdb would not complain
+ about this 'fat' binary. Then the cuda-gdb gave me another error:
+
+ Starting program: /bin/bash .venv/bin/python -m pycuda.debug test.py
+ process 24473 is executing new program: /bin/bash
+ process 24473 is executing new program: /opt/bwpy/bin/bwpy-environ.20180316
+ Error: Not a root suid binary! (When launched via aprun, `aprun -b` must be
+ used)
+
+I couldn't get it to work so I just moved on to debug by printfs.
+"""
