@@ -1,3 +1,22 @@
+""" Notes:
+ - Compiling with the system-site-packages version of pycuda yields some
+ compilation errors so we must use virtualenv + a new version of pycuda
+ straight from the package repo (2018.1.1). The specific error that I was
+ running into was here:
+ https://github.com/inducer/pycuda/blob/master/pycuda/compiler.py#L44
+ (althought not represented in the Github Repo, there was a difference in
+ this line). This line appended an option to the cmdline variable that was
+ invalid (For some reason this option is not seen in the Github repo nor
+ could I find it any commit of the repo. Whoever installed pycuda onto Blue
+ Waters must have made a custom package for it and something else changed
+ causing it to be incorrect. Doesn't matter—we move on!)
+
+ - Initializing a numpy array of shape (theta, n) yields 41.8895 GB if theta
+ is 837790 and n is 50000 (relatively small and reasonable numbers), which is
+ way too big. Its big enough to trigger a memory error from numpy. To
+ counteract this, we will do batch processing. We will do this dynamically by
+ taking the size of RAM on the computer and dividing it in half"""
+
 import math
 import operator as op
 import os
@@ -19,11 +38,15 @@ EPSILON_CONSTANT = 0.2
 K_CONSTANT = 2
 BLOCK_SIZE = 1024
 
+MEM_BYTES = os.sysconf('SC_PAGE_SIZE') * \
+    os.sysconf('SC_PHYS_PAGES')
+MEM_GIGABYTES = MEM_BYTES/(1024.**3)
+
 TWITTER_DATASET_FILEPATH = './datasets/twitter'
 TWITTER_DATASET_PICKLE_FILEPATH = './datasets/twitter.pickle'
 EDGE_FILE_SUFFIX = '.edges'
 RANDOM_CSR_GRAPH_FILEPATH = './datasets/random_graph.pickle'
-GENERATE_RR_SETS_CUDA_CODE_FILEPATH = 'generate_rr_sets.cpp'
+GENERATE_RR_SETS_CUDA_CODE_FILEPATH = 'generate_rr_sets.cu'
 
 # Compile kernel code
 with open(GENERATE_RR_SETS_CUDA_CODE_FILEPATH, "r") as fp:
@@ -64,19 +87,27 @@ def node_selection(graph, k, theta):
 
     generate_rr_sets = mod.get_function('generate_rr_sets')
 
+    # Initialize all the necessary device memory
     data = np.asarray(graph[0]).astype(np.float32)
     rows = np.asarray(graph[1]).astype(np.int32)
     cols = np.asarray(graph[2]).astype(np.int32)
     num_nonzeros = np.int32(len(graph[0]))
-    num_nodes = np.int32(len(graph[1]))
-    theta_gpu = np.int32(theta)
-    R = np.zeros((theta, num_nodes), dtype=int)
+    num_nodes = np.int32(len(graph[1]) - 1)
     dim_grid = (math.ceil(theta / BLOCK_SIZE), 1, 1)
     dim_block = (BLOCK_SIZE, 1, 1)
     rng_states = get_rng_states(theta)
 
-    generate_rr_sets(driver.In(data), driver.In(rows), driver.In(cols), driver.Out(
-        R), num_nodes, num_nonzeros, theta_gpu, rng_states, grid=dim_grid, block=dim_block)
+    # Calculate the number of batches
+    num_rows_per_batch = math.ceil(MEM_GIGABYTES / 2 / num_nodes * 1e-9)
+    num_batches = math.ceil(theta / num_rows_per_batch)
+    num_rows_processed = 0
+    for i in range(num_batches):
+        num_rows_to_process = np.int32(min(
+            num_rows_per_batch, theta - num_rows_processed))
+        R = np.zeros((num_rows_to_process, num_nodes), dtype=np.bool_)
+        generate_rr_sets(driver.In(data), driver.In(rows), driver.In(cols), driver.Out(
+            R), num_nodes, num_nonzeros, num_rows_to_process, rng_states, grid=dim_grid, block=dim_block)
+        num_rows_processed += num_rows_to_process
 
     # Initialize a empty node set S_k
     S_k = []

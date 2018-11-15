@@ -17,10 +17,10 @@ __global__ void init_rng(int nthreads, curandState *states, unsigned long long s
     curand_init(seed, id, offset, &states[id]);
 }
 
-__global__ void generate_rr_sets(float *data, int *rows, int *cols, int *out, int numNodes, int numNonZeros, int theta, curandState *states)
+__global__ void generate_rr_sets(float *data, int *rows, int *cols, bool *out, int numNodes, int numNonZeros, int numSets, curandState *states)
 {
     const unsigned int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    if (tid < theta)
+    if (tid < numSets)
     {
         curandState state = states[tid];
 
@@ -41,7 +41,7 @@ __global__ void generate_rr_sets(float *data, int *rows, int *cols, int *out, in
             // If current is not in visited
             if (!out[tid * numNodes + currentNodeId])
             {
-                out[tid * numNodes + currentNodeId] = 1; // visited.add(currentNodeId)
+                out[tid * numNodes + currentNodeId] = true; // visited.add(currentNodeId)
 
                 int dataStart = rows[currentNodeId];
                 int dataEnd = rows[currentNodeId + 1];
