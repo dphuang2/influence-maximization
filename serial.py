@@ -138,12 +138,35 @@ def node_selection(graph, k, theta):
             del R[set_id]
     return S_k
 
+	
 
 @timeit
 def calculate_lambda(n, k, l, e):
     return (8.0 + 2 * e) * n * (l * math.log(n) + math.log(comb(n, k)) + math.log(2)) * e ** -2
 
 
+# Section from here is IMM algorithm for theta computation
+
+@timeit
+def calculate_lambda_prime(n, k, l, eps):
+	return (2.0 + 2.0/3.0 * eps) * (math.log(comb(n,k)) + l*math.log(n)  math.log( math.log(n)/math.log(2))) * n * eps ** (-2)
+	
+def find_theta_IMM(graph,n,k,e,l):
+	"""Finds the tight lower bound on OPT derived in the IMM algorithm"""
+	lb = 1
+	eps = e * math.sqrt(2)
+	iterations = int(math.ceil(math.log(n)/math.log(2) - 1))
+	for i in range(iterations):
+		x = n/(2.0 ** (i+1))
+		theta = calculate_lambda_prime(n,k,l,eps)/x
+		S_k, R, R_used = node_selection_experimental(graph,k,theta)
+		frac = len(R_used) * 1.0/theta
+		if n*frac >= (1+eps)*x:
+			return calculate_lambda_prime(n,k,l,eps) / (n * frac / (1+eps))
+	return calculate_lambda_prime(n,k,l,eps)
+	
+# Section for IMM algorithm finished
+	
 @timeit
 def random_reverse_reachable_set(graph):
     """ Returns a set of reverse reachable nodes from a random seed node """
