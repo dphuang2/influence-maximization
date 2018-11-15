@@ -149,7 +149,7 @@ def calculate_lambda(n, k, l, e):
 
 @timeit
 def calculate_lambda_prime(n, k, l, eps):
-	return (2.0 + 2.0/3.0 * eps) * (math.log(comb(n,k)) + l*math.log(n)  math.log( math.log(n)/math.log(2))) * n * eps ** (-2)
+    return (2.0 + 2.0/3.0 * eps) * (math.log(comb(n, k)) + l * math.log(n) * math.log(math.log(n)/math.log(2))) * n * eps ** (-2)
 	
 def find_theta_IMM(graph,n,k,e,l):
 	"""Finds the tight lower bound on OPT derived in the IMM algorithm"""
