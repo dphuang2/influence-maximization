@@ -1,3 +1,2 @@
 module load bwpy
 module load cudatoolkit
-module swap PrgEnv-cray PrgEnv/cray-18_06-cuda-9.1

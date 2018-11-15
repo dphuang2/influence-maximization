@@ -51,7 +51,7 @@ GENERATE_RR_SETS_CUDA_CODE_FILEPATH = 'generate_rr_sets.cu'
 # Compile kernel code
 with open(GENERATE_RR_SETS_CUDA_CODE_FILEPATH, "r") as fp:
     content = fp.read()
-mod = compiler.SourceModule(content)
+mod = compiler.SourceModule(content, no_extern_c=True)
 
 
 @timeit
