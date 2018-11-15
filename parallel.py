@@ -25,7 +25,7 @@ TWITTER_DATASET_FILEPATH = './datasets/twitter'
 TWITTER_DATASET_PICKLE_FILEPATH = './datasets/twitter.pickle'
 EDGE_FILE_SUFFIX = '.edges'
 RANDOM_CSR_GRAPH_FILEPATH = './datasets/random_graph.pickle'
-GENERATE_RR_SETS_CUDA_CODE_FILEPATH = 'generate_rr_sets.cu'
+GENERATE_RR_SETS_CUDA_CODE_FILEPATH = 'node_selection.cu'
 
 # Compile kernel code
 with open(GENERATE_RR_SETS_CUDA_CODE_FILEPATH, "r") as fp:
