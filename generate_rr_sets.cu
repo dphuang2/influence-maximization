@@ -1,12 +1,12 @@
 #include <curand_kernel.h>
 
-typedef struct
+typedef struct node
 {
     int id;
     node *prev;
     node *next;
-    node(int id) : id(id){};
-} node;
+    __device__  node(int id) : id(id){};
+} node_t;
 
 __global__ void init_rng(int nthreads, curandState *states, unsigned long long seed, unsigned long long offset)
 {
@@ -14,13 +14,12 @@ __global__ void init_rng(int nthreads, curandState *states, unsigned long long s
     if (id >= nthreads)
         return;
     /* Each thread gets same seed, a different sequence number, no offset */
-    curand_init(seed, id, offset, &state[id]);
+    curand_init(seed, id, offset, &states[id]);
 }
 
 __global__ void generate_rr_sets(float *data, int *rows, int *cols, int *out, int numNodes, int numNonZeros, int theta, curandState *states)
 {
     const unsigned int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    int * rr_set = out[tid];
     if (tid < theta)
     {
         curandState state = states[tid];
@@ -40,9 +39,9 @@ __global__ void generate_rr_sets(float *data, int *rows, int *cols, int *out, in
             free(temp);
 
             // If current is not in visited
-            if (!rr_set[currentNodeId])
+            if (!out[tid * numNodes + currentNodeId])
             {
-                rr_set[currentNodeId] = 1; // visited.add(currentNodeId)
+                out[tid * numNodes + currentNodeId] = 1; // visited.add(currentNodeId)
 
                 int dataStart = rows[currentNodeId];
                 int dataEnd = rows[currentNodeId + 1];
@@ -52,7 +51,7 @@ __global__ void generate_rr_sets(float *data, int *rows, int *cols, int *out, in
                     if (curand_uniform(&state) < data[i])
                     {
                         // append to stack
-                        stack->next = new node(cols[i])
+                        stack->next = new node(cols[i]);
                     }
                 }
             }
