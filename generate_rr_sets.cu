@@ -65,6 +65,7 @@ extern "C"
                     }
                 }
             }
+            free(auxiliary);
         }
     }
 }
