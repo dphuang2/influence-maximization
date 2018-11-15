@@ -98,7 +98,7 @@ def node_selection(graph, k, theta):
     rng_states = get_rng_states(theta)
 
     # Calculate the number of batches
-    num_rows_per_batch = math.ceil(MEM_GIGABYTES / 2 / num_nodes * 1e-9)
+    num_rows_per_batch = math.ceil((MEM_GIGABYTES / 2) / (num_nodes * 1e-9))
     num_batches = math.ceil(theta / num_rows_per_batch)
     num_rows_processed = 0
     for i in range(num_batches):
