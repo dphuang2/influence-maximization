@@ -5,6 +5,7 @@ import pickle
 import random
 from collections import defaultdict
 
+import numpy as np
 from scipy.special import comb
 
 from generate_random_graph import generate_filepath_pickle
@@ -95,7 +96,7 @@ def get_rng_states(size, seed=1):
     rng_states = driver.mem_alloc(
         size*characterize.sizeof('curandStateXORWOW', '#include <curand_kernel.h>'))
 
-    init_rng = module.get_function('init_rng')
+    init_rng = mod.get_function('init_rng')
 
     init_rng(np.int32(size), rng_states, np.uint64(seed),
              np.uint64(0), block=(BLOCK_SIZE, 1, 1), grid=(size//BLOCK_SIZE+1, 1))

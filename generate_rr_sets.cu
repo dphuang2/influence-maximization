@@ -5,7 +5,7 @@ typedef struct node
     int id;
     node *prev;
     node *next;
-    __device__  node(int id) : id(id){};
+    __device__ node(int id) : id(id){};
 } node_t;
 
 __global__ void init_rng(int nthreads, curandState *states, unsigned long long seed, unsigned long long offset)
