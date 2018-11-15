@@ -55,6 +55,7 @@ extern "C"
                         {
                             // append to stack
                             stack->next = new node(cols[i]);
+                            stack = stack->next;
                         }
                     }
                 }
