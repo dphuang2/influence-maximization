@@ -48,7 +48,7 @@ extern "C"
                 // If current is not in visited
                 if (!out[tid * numNodes + currentNodeId])
                 {
-                    out[tid * numNodes + currentNodeId] = true; // visited.add(currentNodeId)
+                    out[tid * numNodes + currentNodeId] = true;
 
                     int dataStart = rows[currentNodeId];
                     int dataEnd = rows[currentNodeId + 1];

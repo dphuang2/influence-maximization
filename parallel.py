@@ -19,9 +19,7 @@ EPSILON_CONSTANT = 0.2
 K_CONSTANT = 2
 BLOCK_SIZE = 1024
 
-MEM_BYTES = os.sysconf('SC_PAGE_SIZE') * \
-    os.sysconf('SC_PHYS_PAGES')
-MEM_GIGABYTES = MEM_BYTES/(1024.**3)
+MEM_BYTES = 1682833408
 
 TWITTER_DATASET_FILEPATH = './datasets/twitter'
 TWITTER_DATASET_PICKLE_FILEPATH = './datasets/twitter.pickle'
@@ -87,7 +85,7 @@ def node_selection(graph, k, theta):
     rng_states = get_rng_states(theta)
 
     # Calculate the number of batches by using half of our RAM per batch
-    num_rows_per_batch = math.ceil((MEM_GIGABYTES / 2) / (num_nodes * 1e-9))
+    num_rows_per_batch = math.ceil((MEM_BYTES / 2) / num_nodes)
     num_batches = math.ceil(theta / num_rows_per_batch)
 
     # Process the batches
