@@ -91,10 +91,9 @@ def node_selection(graph, k, theta):
     num_rows_per_batch = math.ceil(
         ((bytes_left / 1.5) - (4 * (num_nodes + num_nodes**2))) / (num_nodes + SIZEOF_GENERATOR))
     num_batches = math.ceil(theta / num_rows_per_batch)
-    node_histogram = np.zeros(num_nodes, dtype=np.int32)
-    node_to_node_intersections = np.zeros(
-        (num_nodes, num_nodes), dtype=np.int32)
-    rng_states = get_rng_states(num_rows_per_batch)
+    node_histogram = gpuarray.empty(num_nodes, dtype=np.int32)
+    # node_to_node_intersections = np.zeros((num_nodes, num_nodes), dtype=np.int32)
+    node_to_node_intersections = gpuarray.empty((num_nodes, num_nodes), np.int32)
 
     # Process the batches
     num_rows_processed = 0
@@ -104,30 +103,31 @@ def node_selection(graph, k, theta):
         num_rows_to_process = np.int32(min(
             num_rows_per_batch, theta - num_rows_processed))
 
+        if 'rng_states' not in locals():
+            rng_states = get_rng_states(num_rows_to_process)
+
         # Initialize output of kernel
-        processed_rows = np.zeros(
-            (num_rows_to_process, num_nodes), dtype=np.bool_)
+        processed_rows = gpuarray.empty((num_rows_to_process, num_nodes), dtype=np.bool_)
 
         # Define number of blocks
         dim_grid = (math.ceil(num_rows_to_process / BLOCK_SIZE), 1, 1)
         dim_block = (BLOCK_SIZE, 1, 1)
 
         # Launch kernel to generate RR sets
-        generate_rr_sets(data_gpu, rows_gpu, cols_gpu, driver.Out(processed_rows), driver.Out(node_histogram), num_nodes,
+        generate_rr_sets(data_gpu, rows_gpu, cols_gpu, processed_rows, node_histogram, num_nodes,
                          num_nonzeros, num_rows_to_process, rng_states, grid=dim_grid, block=dim_block)
 
         # Counts node to node intersections
         dim_grid = (math.ceil(float(num_rows_to_process) / TILE_X),
                     math.ceil(float(num_nodes) / TILE_Y), math.ceil(float(num_nodes) / TILE_Z))
         dim_block = (TILE_X, TILE_Y, TILE_Z)
-        count_node_to_node_intersections(driver.Out(node_to_node_intersections), driver.In(
-            processed_rows), num_rows_to_process, num_nodes, grid=dim_grid, block=dim_block)
+        count_node_to_node_intersections(node_to_node_intersections, processed_rows, num_rows_to_process, num_nodes, grid=dim_grid, block=dim_block)
 
     # Initialize a empty node set S_k
     S_k = []
     for _ in range(k):
         # Identify node that covers the most RR sets in R
-        node = np.argmax(node_histogram)
+        node = np.argmax(node_histogram.get())
         # Add node into S_k
         S_k.append(node)
         # Remove from R all RR sets that are covered by v_j
@@ -138,12 +138,12 @@ def node_selection(graph, k, theta):
 
 def get_rng_states(size, seed=1):
     "Return `size` number of CUDA random number generator states."
-    rng_states = driver.mem_alloc(size*SIZEOF_GENERATOR)
+    rng_states = driver.mem_alloc(np.long(size*SIZEOF_GENERATOR))
 
     init_rng = mod.get_function('init_rng')
 
     init_rng(np.int32(size), rng_states, np.uint64(seed),
-             np.uint64(0), block=(BLOCK_SIZE, 1, 1), grid=(size//BLOCK_SIZE+1, 1))
+             np.uint64(0), block=(BLOCK_SIZE, 1, 1), grid=(math.ceil(float(size)/BLOCK_SIZE), 1))
 
     return rng_states
 
@@ -208,7 +208,7 @@ def find_k_seeds(graph, k):
 
 
 if __name__ == "__main__":
-    for i in range(5000, 5001):
+    for i in range(3, 4):
         for j in range(1):
             graph = pickle.load(open(generate_filepath_pickle(i), "rb"))
             print(find_k_seeds(graph, K_CONSTANT))

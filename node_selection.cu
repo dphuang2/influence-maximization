@@ -81,7 +81,6 @@ extern "C"
             if (batch[row * num_nodes + node_y] && batch[row * num_nodes + node_z])
             {
                 atomicAdd(&counts[node_y * num_nodes + node_z], 1);
-                atomicAdd(&counts[node_z * num_nodes + node_y], 1);
             }
         }
     }
