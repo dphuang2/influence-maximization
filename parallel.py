@@ -17,9 +17,14 @@ from timer import (cumulative_runtimes, execution_counts,
 L_CONSTANT = 1
 EPSILON_CONSTANT = 0.2
 K_CONSTANT = 2
-BLOCK_SIZE = 1024
+BLOCK_SIZE = 1024.0
+TILE_X = 1.0
+TILE_Y = 32.0
+TILE_Z = 32.0
 
-MEM_BYTES = 1682833408
+MEM_BYTES_CPU = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
+MEM_BYTES_GPU, _ = driver.mem_get_info()
+MEM_BYTES = min(MEM_BYTES_GPU, MEM_BYTES_CPU)
 
 TWITTER_DATASET_FILEPATH = './datasets/twitter'
 TWITTER_DATASET_PICKLE_FILEPATH = './datasets/twitter.pickle'
@@ -62,11 +67,11 @@ def find_most_common_node(rr_sets):
 
 @timeit
 def node_selection(graph, k, theta):
-    R = defaultdict(set)
-
     theta = math.ceil(theta)
 
     generate_rr_sets = mod.get_function('generate_rr_sets')
+    count_node_to_node_intersections = mod.get_function(
+        'count_node_to_node_intersections')
 
     # Initialize all the necessary device memory
     data_cpu = np.asarray(graph[0]).astype(np.float32)
@@ -82,15 +87,18 @@ def node_selection(graph, k, theta):
     num_nonzeros = np.int32(len(graph[0]))
     num_nodes = np.int32(len(graph[1]) - 1)
     dim_block = (BLOCK_SIZE, 1, 1)
-    rng_states = get_rng_states(theta)
 
     # Calculate the number of batches by using half of our RAM per batch
     num_rows_per_batch = math.ceil((MEM_BYTES / 2) / num_nodes)
     num_batches = math.ceil(theta / num_rows_per_batch)
+    node_histogram = np.zeros(num_nodes, dtype=np.bool_)
+    node_to_node_intersections = np.zeros(
+        (num_nodes, num_nodes), dtype=np.int32)
+    rng_states = get_rng_states(num_rows_per_batch)
 
     # Process the batches
     num_rows_processed = 0
-    for i in range(num_batches):
+    for _ in range(num_batches):
 
         # Calculate number of rows to process
         num_rows_to_process = np.int32(min(
@@ -103,26 +111,27 @@ def node_selection(graph, k, theta):
         # Define number of blocks
         dim_grid = (math.ceil(num_rows_to_process / BLOCK_SIZE), 1, 1)
 
-        # Launch kernel
-        generate_rr_sets(data_gpu, rows_gpu, cols_gpu, driver.Out(processed_rows), num_nodes,
+        # Launch kernel to generate RR sets
+        generate_rr_sets(data_gpu, rows_gpu, cols_gpu, driver.Out(processed_rows), driver.Out(node_histogram), num_nodes,
                          num_nonzeros, num_rows_to_process, rng_states, grid=dim_grid, block=dim_block)
 
-        # Update the number of rows that we processed
-        non_zeros = np.transpose(np.nonzero(processed_rows))
-        for row, col in non_zeros:
-            R[row + num_rows_processed].add(col)
-        num_rows_processed += num_rows_to_process
+        # Counts node to node intersections
+        dim_grid = (math.ceil(num_rows_to_process / TILE_X),
+                    math.ceil(num_nodes / TILE_Y), math.ceil(num_nodes / TILE_Z))
+        dim_block = (TILE_X, TILE_Y, TILE_Z)
+        count_node_to_node_intersections(driver.Out(node_to_node_intersections), driver.In(
+            processed_rows), num_rows_to_process, num_nodes, grid=dim_grid, block=dim_block)
 
     # Initialize a empty node set S_k
     S_k = []
-    for j in range(k):
-        # Identify node v_j that covers the most RR sets in R
-        v_j, sets_to_remove = find_most_common_node(R)
-        # Add v_j into S_k
-        S_k.append(v_j)
+    for _ in range(k):
+        # Identify node that covers the most RR sets in R
+        node = np.argmax(node_histogram)
+        # Add node into S_k
+        S_k.append(node)
         # Remove from R all RR sets that are covered by v_j
-        for set_id in sets_to_remove:
-            del R[set_id]
+        for intersecting_node in range(num_nodes):
+            node_histogram[intersecting_node] -= node_to_node_intersections[node][intersecting_node]
     return S_k
 
 
@@ -179,7 +188,7 @@ def kpt_estimation(graph, k):
     for i in range(1, int(math.log(n, 2))):
         ci = 6 * L_CONSTANT * math.log(n) + 6 * math.log(math.log(n, 2)) * 2**i
         cum_sum = 0
-        for j in range(int(ci)):
+        for _ in range(int(ci)):
             R = random_reverse_reachable_set(graph)
             w_r = width(graph, R)
             k_r = 1 - (1 - (w_r / m))**k

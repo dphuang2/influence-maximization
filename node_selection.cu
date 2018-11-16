@@ -21,12 +21,12 @@ extern "C"
         curand_init(seed, id, offset, &states[id]);
     }
 
-    __global__ void generate_rr_sets(float *data, int *rows, int *cols, bool *out, int numNodes, int numNonZeros, int numSets, curandState *states)
+    __global__ void generate_rr_sets(float *data, int *rows, int *cols, bool *out, int *nodeHistogram, int numNodes, int numNonZeros, int numSets, curandState *states)
     {
         const unsigned int tid = blockDim.x * blockIdx.x + threadIdx.x;
         if (tid < numSets)
         {
-            curandState * state = &states[tid];
+            curandState *state = &states[tid];
 
             /* Because C does not give us the luxury of dynamic arrays, to imitate the
         behavior of a stack, I am using a linked list*/
@@ -66,6 +66,22 @@ extern "C"
                 }
             }
             free(auxiliary);
+        }
+    }
+
+    __global__ void count_node_to_node_intersections(int *counts, int *batch, int num_rows, int num_nodes)
+    {
+        row = blockDim.x * blockIdx.x + threadIdx.x;
+        node_y = blockDim.y * blockIdx.y + threadIdx.y;
+        node_z = blockDim.z * blockIdx.z + threadIdx.z;
+
+        if (row < num_rows && node_y < num_nodes && node_z < num_nodes)
+        {
+            if (batch[row * num_nodes + node_y] && batch[row * num_nodes + node_z])
+            {
+                atomicAdd(&counts[node_y * num_nodes + node_z], 1)
+                atomicAdd(&counts[node_z * num_nodes + node_y], 1)
+            }
         }
     }
 }

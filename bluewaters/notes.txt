@@ -80,12 +80,63 @@ for i from 1 to k:
     add max node to S_k
 return S_k
 
-
-
-
-
-
-
-
-
-    
+Updating histogram with node-to-node counts
+example:
+sets = [
+    0,
+    0,
+    0,
+    0,
+    0 1,
+    2 1,
+    2 1,
+    2,
+    2,
+    2,
+    3,
+   ]
+counts = {
+    0: 5
+    1: 3
+    2: 5
+    3: 1
+}
+node_to_node_counts = [
+    [5,1,0,0] # node 0
+    [1,3,2,0] # node 0
+    [0,2,5,0] # node 0
+    [0,0,0,1] # node 0
+]
+k = 1) add node 0 to set
+sets = [
+    2 1,
+    2 1,
+    2,
+    2,
+    2,
+    3,
+]
+counts = {
+    0: 0
+    1: 2
+    2: 5
+    3: 1
+}
+k = 2) add node 2 to set
+sets = [
+    3
+]
+counts = {
+    0: 0
+    1: 0
+    2: 0
+    3: 1
+}
+k = 3) add node 3 to set
+sets = []
+counts = {
+    0: 0
+    1: 0
+    2: 0
+    3: 0
+}
