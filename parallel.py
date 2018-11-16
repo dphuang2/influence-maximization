@@ -116,8 +116,8 @@ def node_selection(graph, k, theta):
                          num_nonzeros, num_rows_to_process, rng_states, grid=dim_grid, block=dim_block)
 
         # Counts node to node intersections
-        dim_grid = (math.floor(float(num_rows_to_process) / TILE_X),
-                  math.floor(float(num_nodes) / TILE_Y), math.floor(float(num_nodes) / TILE_Z))
+        dim_grid = (math.ceil(float(num_rows_to_process) / TILE_X),
+                  math.ceil(float(num_nodes) / TILE_Y), math.ceil(float(num_nodes) / TILE_Z))
         dim_block = (TILE_X, TILE_Y, TILE_Z)
         count_node_to_node_intersections(driver.Out(node_to_node_intersections), driver.In(
             processed_rows), num_rows_to_process, num_nodes, grid=dim_grid, block=dim_block)
