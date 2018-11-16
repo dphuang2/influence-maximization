@@ -17,10 +17,10 @@ from timer import (cumulative_runtimes, execution_counts,
 L_CONSTANT = 1
 EPSILON_CONSTANT = 0.2
 K_CONSTANT = 2
-BLOCK_SIZE = 1024.0
-TILE_X = 1.0
-TILE_Y = 32.0
-TILE_Z = 32.0
+BLOCK_SIZE = 1024
+TILE_X = 1
+TILE_Y = 32
+TILE_Z = 32
 
 MEM_BYTES_CPU = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
 MEM_BYTES_GPU, _ = driver.mem_get_info()
@@ -86,12 +86,11 @@ def node_selection(graph, k, theta):
 
     num_nonzeros = np.int32(len(graph[0]))
     num_nodes = np.int32(len(graph[1]) - 1)
-    dim_block = (BLOCK_SIZE, 1, 1)
 
     # Calculate the number of batches by using half of our RAM per batch
     num_rows_per_batch = math.ceil((MEM_BYTES / 2) / num_nodes)
     num_batches = math.ceil(theta / num_rows_per_batch)
-    node_histogram = np.zeros(num_nodes, dtype=np.bool_)
+    node_histogram = np.zeros(num_nodes, dtype=np.int32)
     node_to_node_intersections = np.zeros(
         (num_nodes, num_nodes), dtype=np.int32)
     rng_states = get_rng_states(num_rows_per_batch)
@@ -110,14 +109,15 @@ def node_selection(graph, k, theta):
 
         # Define number of blocks
         dim_grid = (math.ceil(num_rows_to_process / BLOCK_SIZE), 1, 1)
+        dim_block = (BLOCK_SIZE, 1, 1)
 
         # Launch kernel to generate RR sets
         generate_rr_sets(data_gpu, rows_gpu, cols_gpu, driver.Out(processed_rows), driver.Out(node_histogram), num_nodes,
                          num_nonzeros, num_rows_to_process, rng_states, grid=dim_grid, block=dim_block)
 
         # Counts node to node intersections
-        dim_grid = (math.ceil(num_rows_to_process / TILE_X),
-                    math.ceil(num_nodes / TILE_Y), math.ceil(num_nodes / TILE_Z))
+        dim_grid = (math.floor(float(num_rows_to_process) / TILE_X),
+                  math.floor(float(num_nodes) / TILE_Y), math.floor(float(num_nodes) / TILE_Z))
         dim_block = (TILE_X, TILE_Y, TILE_Z)
         count_node_to_node_intersections(driver.Out(node_to_node_intersections), driver.In(
             processed_rows), num_rows_to_process, num_nodes, grid=dim_grid, block=dim_block)

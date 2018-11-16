@@ -49,6 +49,7 @@ extern "C"
                 if (!out[tid * numNodes + currentNodeId])
                 {
                     out[tid * numNodes + currentNodeId] = true;
+                    atomicAdd(&nodeHistogram[currentNodeId], 1);
 
                     int dataStart = rows[currentNodeId];
                     int dataEnd = rows[currentNodeId + 1];
@@ -69,18 +70,18 @@ extern "C"
         }
     }
 
-    __global__ void count_node_to_node_intersections(int *counts, int *batch, int num_rows, int num_nodes)
+    __global__ void count_node_to_node_intersections(int *counts, bool *batch, int num_rows, int num_nodes)
     {
-        row = blockDim.x * blockIdx.x + threadIdx.x;
-        node_y = blockDim.y * blockIdx.y + threadIdx.y;
-        node_z = blockDim.z * blockIdx.z + threadIdx.z;
+        int row = blockDim.x * blockIdx.x + threadIdx.x;
+        int node_y = blockDim.y * blockIdx.y + threadIdx.y;
+        int node_z = blockDim.z * blockIdx.z + threadIdx.z;
 
         if (row < num_rows && node_y < num_nodes && node_z < num_nodes)
         {
             if (batch[row * num_nodes + node_y] && batch[row * num_nodes + node_z])
             {
-                atomicAdd(&counts[node_y * num_nodes + node_z], 1)
-                atomicAdd(&counts[node_z * num_nodes + node_y], 1)
+                atomicAdd(&counts[node_y * num_nodes + node_z], 1);
+                atomicAdd(&counts[node_z * num_nodes + node_y], 1);
             }
         }
     }
