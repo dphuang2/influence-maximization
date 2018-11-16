@@ -38,4 +38,54 @@ NOTE:
  used)
 
 I couldn't get it to work so I just moved on to debug by printfs.
-"""
+
+- To get around the overhead of GPU memory limitations, we can try to do the
+entire algorithm in parallel. The pseudocode for the proposed new parallel
+algorithm is as follows:
+
+list of sparse matrices = []
+node_histogram = [number of Nodes]
+for each batch:
+    parallel RR set generation over each batch and update node_histogram
+    turn (batch x n) output matrix into sparse matrix # this is questionable and may incur overhead
+    append new sparse matrix to list of sparse matrices
+
+S_k = []
+R = vertically stacked sparse matrix from list of sparse matrices
+for i from 1 to k:
+    max_node parallel reduction tree to find max node frequency in node_histogram # O(logn)
+    parallel update node_histogram by iterating over R and decrementing count for all sets with max_node
+    append max_node to S_k
+return S_k
+
+
+- Better idea:
+1) Do a node histogram
+2) Also do a node-to-node RR intersection count
+ie. 
+parallel for i from 0 to theta - 1
+    RR_i = result of BFS
+paralell for row from 0 to theta - 1
+    for i from 0 to num_nodes - 1
+        for j from 0 to num_nodes 
+            if RR_row[i] and RR_row[j]:
+                if i < j:
+                    atomicAdd(&node-to-node-count[i * num_nodes + j], 1)
+                else:
+                    atomicAdd(&node-to-node-count[j * num_nodes + i], 1)
+S_k = []
+for i from 1 to k:
+    find max node from node-histogram
+    update histogram with node-to-node counts
+    add max node to S_k
+return S_k
+
+
+
+
+
+
+
+
+
+    
