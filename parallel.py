@@ -93,7 +93,8 @@ def node_selection(graph, k, theta):
     num_batches = math.ceil(theta / num_rows_per_batch)
     node_histogram = gpuarray.empty(num_nodes, dtype=np.int32)
     # node_to_node_intersections = np.zeros((num_nodes, num_nodes), dtype=np.int32)
-    node_to_node_intersections = gpuarray.empty((num_nodes, num_nodes), np.int32)
+    node_to_node_intersections = gpuarray.empty(
+        (num_nodes, num_nodes), np.int32)
 
     # Process the batches
     num_rows_processed = 0
@@ -107,7 +108,8 @@ def node_selection(graph, k, theta):
             rng_states = get_rng_states(num_rows_to_process)
 
         # Initialize output of kernel
-        processed_rows = gpuarray.empty((num_rows_to_process, num_nodes), dtype=np.bool_)
+        processed_rows = gpuarray.empty(
+            (num_rows_to_process, num_nodes), dtype=np.bool_)
 
         # Define number of blocks
         dim_grid = (math.ceil(num_rows_to_process / BLOCK_SIZE), 1, 1)
@@ -121,7 +123,8 @@ def node_selection(graph, k, theta):
         dim_grid = (math.ceil(float(num_rows_to_process) / TILE_X),
                     math.ceil(float(num_nodes) / TILE_Y), math.ceil(float(num_nodes) / TILE_Z))
         dim_block = (TILE_X, TILE_Y, TILE_Z)
-        count_node_to_node_intersections(node_to_node_intersections, processed_rows, num_rows_to_process, num_nodes, grid=dim_grid, block=dim_block)
+        count_node_to_node_intersections(
+            node_to_node_intersections, processed_rows, num_rows_to_process, num_nodes, grid=dim_grid, block=dim_block)
 
     # Initialize a empty node set S_k
     S_k = []
