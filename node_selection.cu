@@ -26,11 +26,11 @@ extern "C"
         const unsigned int tid = blockDim.x * blockIdx.x + threadIdx.x;
         if (tid < numSets)
         {
-            curandState state = states[tid];
+            curandState * state = &states[tid];
 
             /* Because C does not give us the luxury of dynamic arrays, to imitate the
         behavior of a stack, I am using a linked list*/
-            int randomNodeId = ceil(numNodes * curand_uniform(&state)) - 1;
+            int randomNodeId = ceil(numNodes * curand_uniform(state)) - 1;
             node *stack = new node(randomNodeId);
             node *auxiliary = new node(AUXILIARY_NODE_ID);
             auxiliary->next = stack;
@@ -55,7 +55,7 @@ extern "C"
 
                     for (unsigned int i = dataStart; i < dataEnd; i++)
                     {
-                        if (curand_uniform(&state) < data[i])
+                        if (curand_uniform(state) < data[i])
                         {
                             // append to stack
                             stack->next = new node(cols[i]);
