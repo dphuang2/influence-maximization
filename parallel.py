@@ -22,9 +22,8 @@ TILE_X = 1
 TILE_Y = 32
 TILE_Z = 32
 
-MEM_BYTES_CPU = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
-MEM_BYTES_GPU, _ = driver.mem_get_info()
-MEM_BYTES = min(MEM_BYTES_GPU, MEM_BYTES_CPU)
+SIZEOF_GENERATOR = characterize.sizeof(
+    'curandStateXORWOW', '#include <curand_kernel.h>')
 
 TWITTER_DATASET_FILEPATH = './datasets/twitter'
 TWITTER_DATASET_PICKLE_FILEPATH = './datasets/twitter.pickle'
@@ -87,8 +86,10 @@ def node_selection(graph, k, theta):
     num_nonzeros = np.int32(len(graph[0]))
     num_nodes = np.int32(len(graph[1]) - 1)
 
-    # Calculate the number of batches by using half of our RAM per batch
-    num_rows_per_batch = math.ceil((MEM_BYTES / 2) / num_nodes)
+    # Calculate the number of batches by using half of our 3/4 of our RAM per batch
+    bytes_left, _ = driver.mem_get_info()
+    num_rows_per_batch = math.ceil(
+        ((bytes_left / 1.5) - (4 * (num_nodes + num_nodes**2))) / (num_nodes + SIZEOF_GENERATOR))
     num_batches = math.ceil(theta / num_rows_per_batch)
     node_histogram = np.zeros(num_nodes, dtype=np.int32)
     node_to_node_intersections = np.zeros(
@@ -117,7 +118,7 @@ def node_selection(graph, k, theta):
 
         # Counts node to node intersections
         dim_grid = (math.ceil(float(num_rows_to_process) / TILE_X),
-                  math.ceil(float(num_nodes) / TILE_Y), math.ceil(float(num_nodes) / TILE_Z))
+                    math.ceil(float(num_nodes) / TILE_Y), math.ceil(float(num_nodes) / TILE_Z))
         dim_block = (TILE_X, TILE_Y, TILE_Z)
         count_node_to_node_intersections(driver.Out(node_to_node_intersections), driver.In(
             processed_rows), num_rows_to_process, num_nodes, grid=dim_grid, block=dim_block)
@@ -137,8 +138,7 @@ def node_selection(graph, k, theta):
 
 def get_rng_states(size, seed=1):
     "Return `size` number of CUDA random number generator states."
-    rng_states = driver.mem_alloc(
-        size*characterize.sizeof('curandStateXORWOW', '#include <curand_kernel.h>'))
+    rng_states = driver.mem_alloc(size*SIZEOF_GENERATOR)
 
     init_rng = mod.get_function('init_rng')
 
