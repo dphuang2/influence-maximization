@@ -103,11 +103,15 @@ def node_selection(graph, k, theta):
         num_rows_to_process = np.int32(min(
             num_rows_per_batch, theta - num_rows_processed))
 
+        # Only initialize a new rng_state array if its our first run
         if 'rng_states' not in locals():
             rng_states = get_rng_states(num_rows_to_process)
 
-        # Initialize output of kernel
-        processed_rows = gpuarray.empty((num_rows_to_process, num_nodes), dtype=np.bool_)
+        # Initialize output of kernel if we don't have it yet, otherwise just reset it with False values
+        if 'processed_rows' not in locals():
+            processed_rows = gpuarray.empty((num_rows_to_process, num_nodes), dtype=np.bool_)
+        else:
+            processed_rows.fill(False)
 
         # Define number of blocks
         dim_grid = (math.ceil(num_rows_to_process / BLOCK_SIZE), 1, 1)
@@ -208,7 +212,7 @@ def find_k_seeds(graph, k):
 
 
 if __name__ == "__main__":
-    for i in range(3, 4):
+    for i in range(100, 101):
         for j in range(1):
             graph = pickle.load(open(generate_filepath_pickle(i), "rb"))
             print(find_k_seeds(graph, K_CONSTANT))
