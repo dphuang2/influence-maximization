@@ -94,6 +94,6 @@ def generate_random_graph(num_nodes):
         pickle.dump(csr, fp)
 
 if __name__ == "__main__":
-    for num_nodes in range(5000,5001):
+    for num_nodes in range(3,4):
         generate_random_graph(num_nodes)
         counter = -1

@@ -1,8 +1,11 @@
 import math
 import operator as op
 import os
+import pdb
+import sys
 import pickle
 import random
+import matplotlib.pyplot as plt
 from collections import defaultdict
 
 from scipy.special import comb
@@ -126,6 +129,11 @@ def node_selection(graph, k, theta):
     # Generate theta random RR sets and insert them into R
     for i in range(int(math.ceil(theta))):
         R[i] = random_reverse_reachable_set(graph)
+    counts = [len(nodes) for nodes in R.values()]
+    pdb.set_trace()
+    plt.hist(counts)
+    plt.show()
+    sys.exit(1)
     # Initialize a empty node set S_k
     S_k = []
     for j in range(k):
@@ -225,7 +233,7 @@ def find_k_seeds(graph, k):
 
 
 if __name__ == "__main__":
-    for i in range(5000, 5001):
+    for i in range(100, 101):
         for j in range(1):
             graph = pickle.load(open(generate_filepath_pickle(i), "rb"))
             print(find_k_seeds(graph, K_CONSTANT))
