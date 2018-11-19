@@ -1,6 +1,7 @@
 #include <iostream>
 #include <random>
 #include <utility>
+#include <chrono>
 #include <fstream>
 #include <set>
 #include <vector>
@@ -11,7 +12,7 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 
-#define RANDOM_GRAPH_FILEPATH "datasets/random_graph_100.txt"
+#define RANDOM_GRAPH_FILEPATH "datasets/random_graph_5000.txt"
 #define AUXILIARY_NODE_ID -1
 #define L_CONSTANT 1
 #define EPSILON_CONSTANT 0.2
@@ -22,24 +23,23 @@
 #define TILE_Z 32
 
 using namespace std;
+using namespace std::chrono;
 
-typedef struct CSR
-{
+typedef struct CSR {
     vector<double> data;
     vector<int> rows;
     vector<int> cols;
-    CSR() : data(), rows(), cols(){};
+    CSR() : data(), rows(), cols() {};
 } CSR_t;
 
 /*
  * A class to read data from a csv file.
  */
-class CSVReader
-{
+class CSVReader {
     string fileName;
     string delimeter;
 
-  public:
+public:
     CSVReader(string filename, string delm = " ") : fileName(filename), delimeter(delm)
     {
     }
@@ -60,8 +60,7 @@ vector<vector<string>> CSVReader::getData()
 
     string line = "";
     // Iterate through each line and split the content using delimeter
-    while (getline(file, line))
-    {
+    while (getline(file, line)) {
         vector<string> vec;
         boost::algorithm::split(vec, line, boost::is_any_of(delimeter));
         dataList.push_back(vec);
@@ -79,16 +78,13 @@ CSR *covertToCSR(vector<vector<string>> rawData)
     vector<string> rows = rawData[1];
     vector<string> cols = rawData[2];
 
-    for (size_t i = 0; i < data.size(); i++)
-    {
+    for (size_t i = 0; i < data.size(); i++) {
         graph->data.push_back(stof(data[i]));
     }
-    for (size_t i = 0; i < rows.size(); i++)
-    {
+    for (size_t i = 0; i < rows.size(); i++) {
         graph->rows.push_back(stoi(rows[i]));
     }
-    for (size_t i = 0; i < cols.size(); i++)
-    {
+    for (size_t i = 0; i < cols.size(); i++) {
         graph->cols.push_back(stoi(cols[i]));
     }
 
@@ -101,10 +97,8 @@ int nCr(int n, int k)
     int i, j;
 
     // Caculate value of Binomial Coefficient in bottom up manner
-    for (i = 0; i <= n; i++)
-    {
-        for (j = 0; j <= min(i, k); j++)
-        {
+    for (i = 0; i <= n; i++) {
+        for (j = 0; j <= min(i, k); j++) {
             // Base Cases
             if (j == 0 || j == i)
                 C[i][j] = 1;
@@ -130,25 +124,20 @@ set<int> randomReverseReachableSet(CSR *graph)
     mt19937 engine{random_device()};
 
     double n = double(graph->rows.size() - 1);
-    uniform_int_distribution<int> dist(0, n);
+    uniform_int_distribution<int> dist(0, n - 1);
     int start = dist(engine);
     vector<int> stack{start};
     set<int> visited;
-    while (!stack.empty())
-    {
+    while (!stack.empty()) {
         int currentNode = stack.back();
         stack.pop_back();
-        if (visited.count(currentNode) == 0)
-        {
+        if (visited.count(currentNode) == 0) {
             visited.insert(currentNode);
-
             int dataStart = graph->rows[currentNode];
             int dataEnd = graph->rows[currentNode + 1];
 
-            for (int i = dataStart; i < dataEnd; i++)
-            {
-                if (((double)rand() / (RAND_MAX)) < graph->data[i])
-                {
+            for (int i = dataStart; i < dataEnd; i++) {
+                if (((double)rand() / RAND_MAX) < graph->data[i]) {
                     stack.push_back(graph->cols[i]);
                 }
             }
@@ -161,8 +150,7 @@ int width(CSR *graph, set<int> nodes)
 {
     int count = 0;
     set<int>::iterator it;
-    for (it = nodes.begin(); it != nodes.end(); it++)
-    {
+    for (it = nodes.begin(); it != nodes.end(); it++) {
         int dataStart = graph->rows[*it];
         int dataEnd = graph->rows[*it + 1];
         count += dataEnd - dataStart;
@@ -174,19 +162,16 @@ double kptEstimation(CSR *graph, int k)
 {
     double n = double(graph->rows.size() - 1);
     double m = double(graph->data.size());
-    for (int i = 1; i < log2(n); i++)
-    {
+    for (int i = 1; i < log2(n); i++) {
         double ci = 6 * L_CONSTANT * log(n) + 6 * log(log2(n)) * pow(2, i);
         double sum = 0;
-        for (int j = 0; j < ci; j++)
-        {
+        for (int j = 0; j < ci; j++) {
             set<int> R = randomReverseReachableSet(graph);
             int w_r = width(graph, R);
             double k_r = 1 - pow((1 - (w_r / m)), k);
             sum += k_r;
         }
-        if (sum / ci > 1 / pow(2, i))
-        {
+        if (sum / ci > 1 / pow(2, i)) {
             return n * sum / (2 * ci);
         }
     }
@@ -201,16 +186,13 @@ pair<int, vector<int>> findMostCommonNode(map<int, set<int>> R)
     int mostCommonNode = 0;
     map<int, set<int>>::iterator i;
     set<int>::iterator j;
-    for (i = R.begin(); i != R.end(); i++)
-    {
+    for (i = R.begin(); i != R.end(); i++) {
         int setId = i->first;
         set<int> set = i->second;
-        for (j = set.begin(); j != set.end(); j++)
-        {
+        for (j = set.begin(); j != set.end(); j++) {
             existsInSet[*j].push_back(setId);
             counts[*j] += 1;
-            if (counts[*j] > maximum)
-            {
+            if (counts[*j] > maximum) {
                 mostCommonNode = *j;
                 maximum = counts[*j];
             }
@@ -224,16 +206,13 @@ vector<int> nodeSelection(CSR *graph, int k, double theta)
     vector<int>::iterator it;
     vector<int> seeds;
     map<int, set<int>> R;
-    for (int i = 0; i < ceil(theta); i++)
-    {
+    for (int i = 0; i < ceil(theta); i++) {
         R[i] = randomReverseReachableSet(graph);
     }
-    for (int j = 0; j < k; j++)
-    {
+    for (int j = 0; j < k; j++) {
         pair<int, vector<int>> commonNode = findMostCommonNode(R);
         seeds.push_back(commonNode.first);
-        for (it = commonNode.second.begin(); it != commonNode.second.end(); it++)
-        {
+        for (it = commonNode.second.begin(); it != commonNode.second.end(); it++) {
             R.erase(*it);
         }
     }
@@ -257,11 +236,16 @@ int main(int argc, char **argv)
     // Get the data from CSV File
     CSR *graph = covertToCSR(reader.getData());
 
-    vector<int> seeds = findKSeeds(graph, K_CONSTANT);
-    vector<int>::iterator it;
-    for (it = seeds.begin(); it != seeds.end(); it++) {
-        cout << *it << " ";
+    for (int i = 0; i < 1; i++) {
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+        vector<int> seeds = findKSeeds(graph, K_CONSTANT);
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>( t2 - t1 ).count();
+        cout << duration << endl;
+        vector<int>::iterator it;
+        for (it = seeds.begin(); it != seeds.end(); it++) {
+            cout << *it << " ";
+        }
     }
-    cout << endl;
     return 0;
 }
