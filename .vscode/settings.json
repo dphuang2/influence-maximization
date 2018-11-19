@@ -4,6 +4,7 @@
     "python.linting.enabled": true,
     "files.associations": {
         "*.cu": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "fstream": "cpp"
     },
 }
