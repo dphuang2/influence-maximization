@@ -1,7 +1,6 @@
 import math
 import operator as op
 import os
-import pdb
 import sys
 import pickle
 import random
@@ -129,11 +128,6 @@ def node_selection(graph, k, theta):
     # Generate theta random RR sets and insert them into R
     for i in range(int(math.ceil(theta))):
         R[i] = random_reverse_reachable_set(graph)
-    counts = [len(nodes) for nodes in R.values()]
-    pdb.set_trace()
-    plt.hist(counts)
-    plt.show()
-    sys.exit(1)
     # Initialize a empty node set S_k
     S_k = []
     for j in range(k):
