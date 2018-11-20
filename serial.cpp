@@ -3,16 +3,18 @@
 #include <utility>
 #include <chrono>
 #include <fstream>
-#include <set>
+#include <unordered_set>
 #include <vector>
 #include <map>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <iterator>
 #include <math.h>
 #include <string>
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 
-#define RANDOM_GRAPH_FILEPATH "datasets/random_graph_5000.txt"
+#define RANDOM_GRAPH_FILEPATH "datasets/random_graph_10000.txt"
 #define AUXILIARY_NODE_ID -1
 #define L_CONSTANT 1
 #define EPSILON_CONSTANT 0.2
@@ -31,6 +33,12 @@ typedef struct CSR {
     vector<int> cols;
     CSR() : data(), rows(), cols() {};
 } CSR_t;
+
+bool fileExists (const std::string& name)
+{
+    struct stat buffer;
+    return (stat (name.c_str(), &buffer) == 0);
+}
 
 /*
  * A class to read data from a csv file.
@@ -117,7 +125,7 @@ double calculateLambda(double n, int k, double l, double e)
     return (double)(8.0 + 2 * e) * n * (l * log(n) + log(nCr(n, k)) + log(2) * pow(e, -2));
 }
 
-set<int> randomReverseReachableSet(CSR *graph)
+unordered_set<int> randomReverseReachableSet(CSR *graph)
 {
     // Seed our randomness
     random_device random_device;
@@ -127,7 +135,7 @@ set<int> randomReverseReachableSet(CSR *graph)
     uniform_int_distribution<int> dist(0, n - 1);
     int start = dist(engine);
     vector<int> stack{start};
-    set<int> visited;
+    unordered_set<int> visited;
     while (!stack.empty()) {
         int currentNode = stack.back();
         stack.pop_back();
@@ -146,10 +154,10 @@ set<int> randomReverseReachableSet(CSR *graph)
     return visited;
 }
 
-int width(CSR *graph, set<int> nodes)
+int width(CSR *graph, unordered_set<int> nodes)
 {
     int count = 0;
-    set<int>::iterator it;
+    unordered_set<int>::iterator it;
     for (it = nodes.begin(); it != nodes.end(); it++) {
         int dataStart = graph->rows[*it];
         int dataEnd = graph->rows[*it + 1];
@@ -166,7 +174,7 @@ double kptEstimation(CSR *graph, int k)
         double ci = 6 * L_CONSTANT * log(n) + 6 * log(log2(n)) * pow(2, i);
         double sum = 0;
         for (int j = 0; j < ci; j++) {
-            set<int> R = randomReverseReachableSet(graph);
+            unordered_set<int> R = randomReverseReachableSet(graph);
             int w_r = width(graph, R);
             double k_r = 1 - pow((1 - (w_r / m)), k);
             sum += k_r;
@@ -178,19 +186,20 @@ double kptEstimation(CSR *graph, int k)
     return 1.0;
 }
 
-pair<int, vector<int>> findMostCommonNode(map<int, set<int>> R)
+pair<int, unordered_set<int>> findMostCommonNode(map<int, unordered_set<int>> R)
 {
     map<int, int> counts;
-    map<int, vector<int>> existsInSet;
+    unordered_set<int>::iterator j;
+    map<int, unordered_set<int>> existsInSet;
+    map<int, unordered_set<int>>::iterator i;
     int maximum = 0;
     int mostCommonNode = 0;
-    map<int, set<int>>::iterator i;
-    set<int>::iterator j;
+
     for (i = R.begin(); i != R.end(); i++) {
         int setId = i->first;
-        set<int> set = i->second;
-        for (j = set.begin(); j != set.end(); j++) {
-            existsInSet[*j].push_back(setId);
+        unordered_set<int> unordered_set = i->second;
+        for (j = unordered_set.begin(); j != unordered_set.end(); j++) {
+            existsInSet[*j].insert(setId);
             counts[*j] += 1;
             if (counts[*j] > maximum) {
                 mostCommonNode = *j;
@@ -201,36 +210,76 @@ pair<int, vector<int>> findMostCommonNode(map<int, set<int>> R)
     return make_pair(mostCommonNode, existsInSet[mostCommonNode]);
 }
 
-vector<int> nodeSelection(CSR *graph, int k, double theta)
+unordered_set<int> nodeSelection(CSR *graph, int k, double theta)
 {
-    vector<int>::iterator it;
-    vector<int> seeds;
-    map<int, set<int>> R;
+    unordered_set<int>::iterator it;
+    unordered_set<int> seeds;
+    map<int, unordered_set<int>> R;
+    high_resolution_clock::time_point t1;
+    high_resolution_clock::time_point t2;
+    high_resolution_clock::time_point t3;
+    high_resolution_clock::time_point t4;
+
+    t1 = high_resolution_clock::now();
     for (int i = 0; i < ceil(theta); i++) {
         R[i] = randomReverseReachableSet(graph);
     }
+    t2 = high_resolution_clock::now();
+    cout << "Generating RR Sets in nodeSelection: " << duration_cast<microseconds>( t2 - t1 ).count() << endl;
+
+    t1 = high_resolution_clock::now();
     for (int j = 0; j < k; j++) {
-        pair<int, vector<int>> commonNode = findMostCommonNode(R);
-        seeds.push_back(commonNode.first);
+        t3 = high_resolution_clock::now();
+        pair<int, unordered_set<int>> commonNode = findMostCommonNode(R);
+        t4 = high_resolution_clock::now();
+        cout << "findMostCommonNode: " << duration_cast<microseconds>( t4 - t3 ).count() << endl;
+        seeds.insert(commonNode.first);
+        t3 = high_resolution_clock::now();
         for (it = commonNode.second.begin(); it != commonNode.second.end(); it++) {
             R.erase(*it);
         }
+        t4 = high_resolution_clock::now();
+        cout << "deleting sets the most commond node exists in : " << duration_cast<microseconds>( t4 - t3 ).count() << endl;
     }
+    t2 = high_resolution_clock::now();
+    cout << "Selecting seeds: " << duration_cast<microseconds>( t2 - t1 ).count() << endl;
 
     return seeds;
 }
 
-vector<int> findKSeeds(CSR *graph, int k)
+unordered_set<int> findKSeeds(CSR *graph, int k)
 {
     double n = double(graph->rows.size() - 1);
+    high_resolution_clock::time_point t1;
+    high_resolution_clock::time_point t2;
+
+    t1 = high_resolution_clock::now();
     double kpt = kptEstimation(graph, k);
+    t2 = high_resolution_clock::now();
+    cout << "kptEstimation: " <<  duration_cast<microseconds>( t2 - t1 ).count() << endl;
+
+    t1 = high_resolution_clock::now();
     double lambda = calculateLambda(n, k, L_CONSTANT, EPSILON_CONSTANT);
+    t2 = high_resolution_clock::now();
+    cout << "calculateLambda: " <<  duration_cast<microseconds>( t2 - t1 ).count() << endl;
+
     double theta = lambda / kpt;
-    return nodeSelection(graph, k, theta);
+
+    t1 = high_resolution_clock::now();
+    unordered_set<int> selectedNodes = nodeSelection(graph, k, theta);
+    t2 = high_resolution_clock::now();
+    cout << "selectedNodes: " <<  duration_cast<microseconds>( t2 - t1 ).count() << endl;
+
+    return selectedNodes;
 }
 
 int main(int argc, char **argv)
 {
+    if (!fileExists(RANDOM_GRAPH_FILEPATH)) {
+        cout << "File " << RANDOM_GRAPH_FILEPATH << " did not exist...exiting" <<endl;
+        exit(1);
+    }
+
     // Creating an object of CSVWriter
     CSVReader reader(RANDOM_GRAPH_FILEPATH);
     // Get the data from CSV File
@@ -238,14 +287,14 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < 1; i++) {
         high_resolution_clock::time_point t1 = high_resolution_clock::now();
-        vector<int> seeds = findKSeeds(graph, K_CONSTANT);
+        unordered_set<int> seeds = findKSeeds(graph, K_CONSTANT);
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>( t2 - t1 ).count();
-        cout << duration << endl;
-        vector<int>::iterator it;
+        unordered_set<int>::iterator it;
         for (it = seeds.begin(); it != seeds.end(); it++) {
             cout << *it << " ";
         }
+        cout << "- " << duration << " microseconds" << endl;
     }
     return 0;
 }
