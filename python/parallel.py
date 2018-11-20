@@ -5,6 +5,8 @@ import pickle
 import random
 from collections import defaultdict
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 import numpy as np
 from scipy.special import comb
 

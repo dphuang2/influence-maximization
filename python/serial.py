@@ -7,6 +7,8 @@ import random
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 from scipy.special import comb
 
 from generate_random_graph import generate_filepath_pickle
