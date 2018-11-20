@@ -30,22 +30,23 @@
 
 using namespace std;
 
-typedef struct CSR {
+typedef struct CSR
+{
     vector<float> data;
     vector<int> rows;
     vector<int> cols;
-    CSR() : data(), rows(), cols() {};
+    CSR() : data(), rows(), cols(){};
 } CSR_t;
 
-class CSVReader {
+class CSVReader
+{
     string fileName;
     string delimeter;
 
-public:
-    CSVReader(string filename, string delm = " ") : fileName(filename), delimeter(delm) { }
+  public:
+    CSVReader(string filename, string delm = " ") : fileName(filename), delimeter(delm) {}
     vector<vector<string>> getData();
 };
-
 
 unordered_set<int> findKSeeds(CSR *graph, int k);
 
@@ -61,4 +62,4 @@ double kptEstimation(CSR *graph, int k);
 
 CSR *covertToCSR(vector<vector<string>> rawData);
 
-bool fileExists (const std::string& name);
+bool fileExists(const std::string &name);

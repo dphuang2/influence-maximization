@@ -9,13 +9,16 @@ pair<int, unordered_set<int>> findMostCommonNode(map<int, unordered_set<int>> R)
     int maximum = 0;
     int mostCommonNode = 0;
 
-    for (i = R.begin(); i != R.end(); i++) {
+    for (i = R.begin(); i != R.end(); i++)
+    {
         int setId = i->first;
         unordered_set<int> unordered_set = i->second;
-        for (j = unordered_set.begin(); j != unordered_set.end(); j++) {
+        for (j = unordered_set.begin(); j != unordered_set.end(); j++)
+        {
             existsInSet[*j].insert(setId);
             counts[*j] += 1;
-            if (counts[*j] > maximum) {
+            if (counts[*j] > maximum)
+            {
                 mostCommonNode = *j;
                 maximum = counts[*j];
             }
@@ -35,21 +38,24 @@ unordered_set<int> nodeSelection(CSR *graph, int k, double theta)
     struct timeval t4;
 
     gettimeofday(&t1, NULL);
-    for (int i = 0; i < ceil(theta); i++) {
+    for (int i = 0; i < ceil(theta); i++)
+    {
         R[i] = randomReverseReachableSet(graph);
     }
     gettimeofday(&t2, NULL);
     printf("Generating RR Sets in nodeSelection: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
 
     gettimeofday(&t1, NULL);
-    for (int j = 0; j < k; j++) {
+    for (int j = 0; j < k; j++)
+    {
         gettimeofday(&t3, NULL);
         pair<int, unordered_set<int>> commonNode = findMostCommonNode(R);
         gettimeofday(&t4, NULL);
         printf("findMostCommonNode: %ld\n", ((t4.tv_sec - t3.tv_sec) * 1000000L + t4.tv_usec - t3.tv_usec));
         seeds.insert(commonNode.first);
         gettimeofday(&t3, NULL);
-        for (it = commonNode.second.begin(); it != commonNode.second.end(); it++) {
+        for (it = commonNode.second.begin(); it != commonNode.second.end(); it++)
+        {
             R.erase(*it);
         }
         gettimeofday(&t4, NULL);
@@ -89,8 +95,9 @@ unordered_set<int> findKSeeds(CSR *graph, int k)
 
 int main(int argc, char **argv)
 {
-    if (!fileExists(RANDOM_GRAPH_FILEPATH)) {
-        cout << "File " << RANDOM_GRAPH_FILEPATH << " did not exist...exiting" <<endl;
+    if (!fileExists(RANDOM_GRAPH_FILEPATH))
+    {
+        cout << "File " << RANDOM_GRAPH_FILEPATH << " did not exist...exiting" << endl;
         exit(1);
     }
 
@@ -99,16 +106,18 @@ int main(int argc, char **argv)
     // Get the data from CSV File
     CSR *graph = covertToCSR(reader.getData());
 
-    struct timeval t1,t2;
-    for (int i = 0; i < 1; i++) {
+    struct timeval t1, t2;
+    for (int i = 0; i < 1; i++)
+    {
         gettimeofday(&t1, NULL);
         unordered_set<int> seeds = findKSeeds(graph, K_CONSTANT);
         gettimeofday(&t2, NULL);
         unordered_set<int>::iterator it;
-        for (it = seeds.begin(); it != seeds.end(); it++) {
+        for (it = seeds.begin(); it != seeds.end(); it++)
+        {
             cout << *it << " ";
         }
-        printf("- %ld\n", ((t2.tv_sec - t1.tv_sec)*1000000L + t2.tv_usec - t1.tv_usec));
+        printf("- %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
     }
     return 0;
 }

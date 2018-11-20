@@ -5,11 +5,12 @@
 
 using namespace std;
 
-typedef struct node {
+typedef struct node
+{
     int id;
     node *prev;
     node *next;
-    __device__ node(int id) : id(id) {};
+    __device__ node(int id) : id(id){};
 } node_t;
 
 __global__ void init_rng(int nthreads, curandState *states, unsigned long long seed, unsigned long long offset)
@@ -24,7 +25,8 @@ __global__ void init_rng(int nthreads, curandState *states, unsigned long long s
 __global__ void generate_rr_sets(float *data, int *rows, int *cols, bool *out, int *nodeHistogram, int numNodes, int numSets, curandState *states)
 {
     const unsigned int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    if (tid < numSets) {
+    if (tid < numSets)
+    {
         curandState *state = &states[tid];
 
         /* Because C does not give us the luxury of dynamic arrays, to imitate the
@@ -36,7 +38,8 @@ __global__ void generate_rr_sets(float *data, int *rows, int *cols, bool *out, i
         stack->prev = auxiliary;
 
         // Returns false when stack is NULL
-        while (stack != NULL && stack->id != AUXILIARY_NODE_ID) {
+        while (stack != NULL && stack->id != AUXILIARY_NODE_ID)
+        {
             // pop from stack
             int currentNodeId = stack->id;
             node *temp = stack;
@@ -44,15 +47,18 @@ __global__ void generate_rr_sets(float *data, int *rows, int *cols, bool *out, i
             free(temp);
 
             // If current is not in visited
-            if (!out[tid * numNodes + currentNodeId]) {
+            if (!out[tid * numNodes + currentNodeId])
+            {
                 out[tid * numNodes + currentNodeId] = true;
                 atomicAdd(&nodeHistogram[currentNodeId], 1);
 
                 int dataStart = rows[currentNodeId];
                 int dataEnd = rows[currentNodeId + 1];
 
-                for (unsigned int i = dataStart; i < dataEnd; i++) {
-                    if (curand_uniform(state) < data[i]) {
+                for (unsigned int i = dataStart; i < dataEnd; i++)
+                {
+                    if (curand_uniform(state) < data[i])
+                    {
                         // append to stack
                         stack->next = new node(cols[i]);
                         stack->next->prev = stack;
@@ -72,26 +78,31 @@ __global__ void count_node_to_node_intersections(int *counts, bool *batch, int n
     int node_y = (tid / num_nodes) % num_nodes;
     int node_z = tid / (num_nodes * num_nodes);
 
-    if (row < num_rows && node_y < num_nodes && node_z < num_nodes) {
-        if (batch[row * num_nodes + node_y] && batch[row * num_nodes + node_z]) {
+    if (row < num_rows && node_y < num_nodes && node_z < num_nodes)
+    {
+        if (batch[row * num_nodes + node_y] && batch[row * num_nodes + node_z])
+        {
             atomicAdd(&counts[node_y * num_nodes + node_z], 1);
         }
     }
 }
 
-__global__ void update_counts(int * intersections, int * histogram, int numNodes, int nodeToDelete)
+__global__ void update_counts(int *intersections, int *histogram, int numNodes, int nodeToDelete)
 {
     int row = blockIdx.x * blockDim.x + threadIdx.x;
     int col = blockIdx.y * blockDim.y + threadIdx.y;
     if (row >= numNodes || col >= numNodes)
         return;
-    if (row >= col) {
+    if (row >= col)
+    {
         intersections[row * numNodes + col] -= intersections[nodeToDelete * numNodes + col];
-        if (row == col) {
+        if (row == col)
+        {
             histogram[row] = intersections[row * numNodes + col];
         }
     }
-    else if (row < col) {
+    else if (row < col)
+    {
         intersections[row * numNodes + col] -= intersections[row * numNodes + nodeToDelete];
     }
 }
@@ -103,48 +114,47 @@ unordered_set<int> nodeSelection(CSR *graph, int k, double theta)
     map<int, unordered_set<int>> R;
     size_t freeGPUBytes;
     size_t totalGPUBytes;
-    float * deviceData;
-    int * deviceRows;
-    int * deviceCols;
-    int * deviceNodeHistogram;
-    int * deviceNodeToNodeIntersections;
-    bool * deviceProcessedRows;
-    curandState * deviceStates;
+    float *deviceData;
+    int *deviceRows;
+    int *deviceCols;
+    int *deviceNodeHistogram;
+    int *deviceNodeToNodeIntersections;
+    bool *deviceProcessedRows;
+    curandState *deviceStates;
 
     // Initialize data, rows, and cols
     int sizeOfData = graph->data.size() * sizeof(float);
     int sizeOfRows = graph->rows.size() * sizeof(int);
     int sizeOfCols = graph->cols.size() * sizeof(int);
-    cudaMalloc((void **) &deviceData, sizeOfData);
-    cudaMalloc((void **) &deviceRows, sizeOfRows);
-    cudaMalloc((void **) &deviceCols, sizeOfCols);
+    cudaMalloc((void **)&deviceData, sizeOfData);
+    cudaMalloc((void **)&deviceRows, sizeOfRows);
+    cudaMalloc((void **)&deviceCols, sizeOfCols);
     cudaMemcpy(deviceData, &(graph->data[0]), sizeOfData, cudaMemcpyHostToDevice);
     cudaMemcpy(deviceRows, &(graph->rows[0]), sizeOfRows, cudaMemcpyHostToDevice);
     cudaMemcpy(deviceCols, &(graph->cols[0]), sizeOfCols, cudaMemcpyHostToDevice);
 
     // Initialize output of kernel
-    int numNodes = (int) graph->rows.size() - 1;
+    int numNodes = (int)graph->rows.size() - 1;
     int sizeOfNodeHistogram = sizeof(int) * numNodes;
     int sizeOfNodeToNodeIntersections = sizeof(int) * numNodes * numNodes;
-    cudaMalloc((void **) &deviceNodeHistogram, sizeOfNodeHistogram);
-    cudaMalloc((void **) &deviceNodeToNodeIntersections, sizeOfNodeToNodeIntersections);
+    cudaMalloc((void **)&deviceNodeHistogram, sizeOfNodeHistogram);
+    cudaMalloc((void **)&deviceNodeToNodeIntersections, sizeOfNodeToNodeIntersections);
     cudaMemset(deviceNodeHistogram, 0, sizeOfNodeHistogram);
     cudaMemset(deviceNodeToNodeIntersections, 0, sizeOfNodeToNodeIntersections);
 
     // Calculate number of batches
     cudaMemGetInfo(&freeGPUBytes, &totalGPUBytes);
     int numRowsPerBatch = ceil(
-            ((freeGPUBytes / 1.5) - (4 * numNodes + pow(numNodes, 2)))
-            /
-            (numNodes + sizeof(curandState)));
+        ((freeGPUBytes / 1.5) - (4 * numNodes + pow(numNodes, 2))) /
+        (numNodes + sizeof(curandState)));
     int numBatches = ceil(theta / numRowsPerBatch);
 
     // Initialize processed rows output
     long long int sizeOfProcessedRows = sizeof(bool) * numRowsPerBatch * numNodes;
-    cudaMalloc((void **) &deviceProcessedRows, sizeOfProcessedRows);
+    cudaMalloc((void **)&deviceProcessedRows, sizeOfProcessedRows);
 
     // Initialize RNG States
-    cudaMalloc((void **) &deviceStates, numRowsPerBatch * sizeof(curandState));
+    cudaMalloc((void **)&deviceStates, numRowsPerBatch * sizeof(curandState));
     dim3 dimGrid(ceil(float(numRowsPerBatch) / BLOCK_SIZE), 1, 1);
     dim3 dimBlock(BLOCK_SIZE, 1, 1);
     init_rng<<<dimGrid, dimBlock>>>(numRowsPerBatch, deviceStates, 1, 0);
@@ -152,9 +162,10 @@ unordered_set<int> nodeSelection(CSR *graph, int k, double theta)
 
     // Process batches
     int numRowsProcessed = 0;
-    for (int i = 0; i < numBatches; i++) {
+    for (int i = 0; i < numBatches; i++)
+    {
         cudaMemset(deviceProcessedRows, false, sizeOfProcessedRows);
-        int  numRowsToProcess = min(numRowsPerBatch, (int) ceil(theta) - numRowsProcessed);
+        int numRowsToProcess = min(numRowsPerBatch, (int)ceil(theta) - numRowsProcessed);
         dimGrid = dim3(ceil(float(numRowsToProcess) / BLOCK_SIZE), 1, 1);
         dimBlock = dim3(BLOCK_SIZE, 1, 1);
         generate_rr_sets<<<dimGrid, dimBlock>>>(deviceData, deviceRows, deviceCols, deviceProcessedRows, deviceNodeHistogram, numNodes, numRowsToProcess, deviceStates);
@@ -167,7 +178,8 @@ unordered_set<int> nodeSelection(CSR *graph, int k, double theta)
     }
 
     thrust::device_ptr<int> dev_ptr(deviceNodeHistogram);
-    for (int j = 0; j < k; j++) {
+    for (int j = 0; j < k; j++)
+    {
         int mostCommonNode = (thrust::max_element(dev_ptr, dev_ptr + numNodes) - dev_ptr);
         seeds.insert(mostCommonNode);
         dimGrid = dim3(ceil(float(numNodes) / TILE_X_2D), ceil(float(numNodes) / TILE_Y_2D), 1);
@@ -206,8 +218,9 @@ unordered_set<int> findKSeeds(CSR *graph, int k)
 
 int main(int argc, char **argv)
 {
-    if (!fileExists(RANDOM_GRAPH_FILEPATH)) {
-        cout << "File " << RANDOM_GRAPH_FILEPATH << " did not exist...exiting" <<endl;
+    if (!fileExists(RANDOM_GRAPH_FILEPATH))
+    {
+        cout << "File " << RANDOM_GRAPH_FILEPATH << " did not exist...exiting" << endl;
         exit(1);
     }
 
@@ -216,16 +229,18 @@ int main(int argc, char **argv)
     // Get the data from CSV File
     CSR *graph = covertToCSR(reader.getData());
 
-    struct timeval t1,t2;
-    for (int i = 0; i < 1; i++) {
+    struct timeval t1, t2;
+    for (int i = 0; i < 1; i++)
+    {
         gettimeofday(&t1, NULL);
         unordered_set<int> seeds = findKSeeds(graph, K_CONSTANT);
         gettimeofday(&t2, NULL);
         unordered_set<int>::iterator it;
-        for (it = seeds.begin(); it != seeds.end(); it++) {
+        for (it = seeds.begin(); it != seeds.end(); it++)
+        {
             cout << *it << " ";
         }
-        printf("- %ld\n", ((t2.tv_sec - t1.tv_sec)*1000000L + t2.tv_usec - t1.tv_usec));
+        printf("- %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
     }
     return 0;
 }
