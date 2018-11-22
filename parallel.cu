@@ -168,7 +168,7 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
         for (int j = 0; j < numRowsToProcess; j++) {
             processedRows->rows.push_back(processedRows->data.size());
             for (int k = 0; k < numNodes; k++) {
-                if (hostProcessedRows[j * numNodes + k]) {
+                if (hostProcessedRows[(unsigned long long int) j * numNodes + k]) {
                     processedRows->data.push_back(true);
                     processedRows->cols.push_back(k);
                 }
