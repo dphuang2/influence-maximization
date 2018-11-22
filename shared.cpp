@@ -151,3 +151,81 @@ CSR<float> *covertToCSR(vector<vector<string>> rawData)
 
     return graph;
 }
+
+Benchmark::Benchmark() {
+    files.push_back("datasets/random_graph_20.txt");
+    files.push_back("datasets/random_graph_30.txt");
+    files.push_back("datasets/random_graph_40.txt");
+    files.push_back("datasets/random_graph_50.txt");
+    files.push_back("datasets/random_graph_60.txt");
+    files.push_back("datasets/random_graph_70.txt");
+    files.push_back("datasets/random_graph_80.txt");
+    files.push_back("datasets/random_graph_90.txt");
+    files.push_back("datasets/random_graph_100.txt");
+    files.push_back("datasets/random_graph_800.txt");
+    files.push_back("datasets/random_graph_5000.txt");
+    files.push_back("datasets/random_graph_8000.txt");
+    files.push_back("datasets/random_graph_10000.txt");
+    files.push_back("datasets/random_graph_30000.txt");
+}
+
+void Benchmark::run() {
+    for (int file = 0; file < files.size(); file++) {
+        string filepath = files[file];
+        if (!fileExists(filepath))
+        {
+            cout << "File " << filepath << " did not exist...exiting" << endl;
+            continue;
+        }
+
+        // Creating an object of CSVWriter
+        CSVReader reader(filepath);
+        // Get the data from CSV File
+        CSR<float> *graph = covertToCSR(reader.getData());
+
+        struct timeval t1, t2;
+        for (int i = 0; i < NUM_TRIALS; i++)
+        {
+            gettimeofday(&t1, NULL);
+            unordered_set<int> seeds = findKSeeds(graph, K_CONSTANT);
+            gettimeofday(&t2, NULL);
+            unordered_set<int>::iterator it;
+            printf("findKSeeds ");
+            for (it = seeds.begin(); it != seeds.end(); it++)
+            {
+                cout << *it << " ";
+            }
+            printf("- %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
+        }
+    }
+}
+
+void Benchmark::setNodeSelectionFunction(unordered_set<int> (*func)(CSR<float> *graph, int k, double theta)) {
+    nodeSelection = func;
+}
+
+unordered_set<int> Benchmark::findKSeeds(CSR<float> *graph, int k)
+{
+    double n = double(graph->rows.size() - 1);
+    struct timeval t1;
+    struct timeval t2;
+
+    gettimeofday(&t1, NULL);
+    double kpt = kptEstimation(graph, k);
+    gettimeofday(&t2, NULL);
+    printf("kptEstimation: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
+
+    gettimeofday(&t1, NULL);
+    double lambda = calculateLambda(n, k, L_CONSTANT, EPSILON_CONSTANT);
+    gettimeofday(&t2, NULL);
+    printf("calculateLambda: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
+
+    double theta = lambda / kpt;
+
+    gettimeofday(&t1, NULL);
+    unordered_set<int> selectedNodes = nodeSelection(graph, k, theta);
+    gettimeofday(&t2, NULL);
+    printf("nodeSelection: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
+
+    return selectedNodes;
+}

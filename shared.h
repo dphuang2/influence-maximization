@@ -16,11 +16,12 @@
 #include <utility>
 #include <vector>
 
-#define RANDOM_GRAPH_FILEPATH "datasets/random_graph_8000.txt"
 #define AUXILIARY_NODE_ID -1
 #define L_CONSTANT 1
 #define EPSILON_CONSTANT 0.2
-#define K_CONSTANT 3
+#define K_CONSTANT 10
+#define NUM_TRIALS 100
+
 #define BLOCK_SIZE 1024
 #define TILE_X_3D 4
 #define TILE_Y_3D 16
@@ -37,6 +38,19 @@ struct CSR
     vector<int> rows;
     vector<int> cols;
     CSR() : data(), rows(), cols(){};
+};
+
+
+class Benchmark
+{
+    vector<string> files;
+    unordered_set<int> (*nodeSelection)(CSR<float> *graph, int k, double theta);
+
+    public:
+    Benchmark();
+    unordered_set<int> findKSeeds(CSR<float> *graph, int k);
+    void run();
+    void setNodeSelectionFunction(unordered_set<int> (*func)(CSR<float> *graph, int k, double theta));
 };
 
 class CSVReader
@@ -64,3 +78,5 @@ double kptEstimation(CSR<float> *graph, int k);
 CSR<float> *covertToCSR(vector<vector<string>> rawData);
 
 bool fileExists(const std::string &name);
+
+unordered_set<int> findKSeeds(CSR<float> *graph, int k);
