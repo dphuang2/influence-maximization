@@ -177,6 +177,7 @@ void Benchmark::run() {
             cout << "File " << filepath << " did not exist...exiting" << endl;
             continue;
         }
+        printf("Running trials on %s\n", filepath.c_str());
 
         // Creating an object of CSVWriter
         CSVReader reader(filepath);

@@ -209,6 +209,14 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
     mostCommonNode = (thrust::max_element(dev_ptr, dev_ptr + numNodes) - dev_ptr);
     seeds.insert(mostCommonNode);
 
+    cudaFree(deviceDataFloat);
+    cudaFree(deviceDataBool);
+    cudaFree(deviceRows);
+    cudaFree(deviceCols);
+    cudaFree(deviceNodeHistogram);
+    cudaFree(deviceProcessedRows);
+    cudaFree(deviceStates);
+
     return seeds;
 }
 
