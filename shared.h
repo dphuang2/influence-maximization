@@ -20,7 +20,7 @@
 #define AUXILIARY_NODE_ID -1
 #define L_CONSTANT 1
 #define EPSILON_CONSTANT 0.2
-#define K_CONSTANT 4
+#define K_CONSTANT 3
 #define BLOCK_SIZE 1024
 #define TILE_X_3D 4
 #define TILE_Y_3D 16
@@ -30,13 +30,14 @@
 
 using namespace std;
 
-typedef struct CSR
+template <typename T>
+struct CSR
 {
-    vector<float> data;
+    vector<T> data;
     vector<int> rows;
     vector<int> cols;
     CSR() : data(), rows(), cols(){};
-} CSR_t;
+};
 
 class CSVReader
 {
@@ -48,18 +49,18 @@ class CSVReader
     vector<vector<string>> getData();
 };
 
-unordered_set<int> findKSeeds(CSR *graph, int k);
+unordered_set<int> findKSeeds(CSR<float> *graph, int k);
 
 double nCr(double n, double k);
 
 double calculateLambda(double n, double k, double l, double e);
 
-unordered_set<int> randomReverseReachableSet(CSR *graph);
+unordered_set<int> randomReverseReachableSet(CSR<float> *graph);
 
-int width(CSR *graph, unordered_set<int> nodes);
+int width(CSR<float> *graph, unordered_set<int> nodes);
 
-double kptEstimation(CSR *graph, int k);
+double kptEstimation(CSR<float> *graph, int k);
 
-CSR *covertToCSR(vector<vector<string>> rawData);
+CSR<float> *covertToCSR(vector<vector<string>> rawData);
 
 bool fileExists(const std::string &name);

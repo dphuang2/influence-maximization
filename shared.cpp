@@ -28,7 +28,7 @@ double calculateLambda(double n, double k, double l, double e)
     return (8.0 + 2 * e) * n * (l * log(n) + log(nCr(n, k)) + log(2) * pow(e, -2));
 }
 
-unordered_set<int> randomReverseReachableSet(CSR *graph)
+unordered_set<int> randomReverseReachableSet(CSR<float> *graph)
 {
     // Seed our randomness
     random_device random_device;
@@ -61,7 +61,7 @@ unordered_set<int> randomReverseReachableSet(CSR *graph)
     return visited;
 }
 
-int width(CSR *graph, unordered_set<int> nodes)
+int width(CSR<float> *graph, unordered_set<int> nodes)
 {
     int count = 0;
     unordered_set<int>::iterator it;
@@ -74,7 +74,7 @@ int width(CSR *graph, unordered_set<int> nodes)
     return count;
 }
 
-double kptEstimation(CSR *graph, int k)
+double kptEstimation(CSR<float> *graph, int k)
 {
     double n = double(graph->rows.size() - 1);
     double m = double(graph->data.size());
@@ -129,9 +129,9 @@ vector<vector<string>> CSVReader::getData()
     return dataList;
 }
 
-CSR *covertToCSR(vector<vector<string>> rawData)
+CSR<float> *covertToCSR(vector<vector<string>> rawData)
 {
-    CSR *graph = new CSR();
+    CSR<float> *graph = new CSR<float>();
     vector<string> data = rawData[0];
     vector<string> rows = rawData[1];
     vector<string> cols = rawData[2];

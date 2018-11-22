@@ -27,7 +27,7 @@ pair<int, unordered_set<int>> findMostCommonNode(map<int, unordered_set<int>> R)
     return make_pair(mostCommonNode, existsInSet[mostCommonNode]);
 }
 
-unordered_set<int> nodeSelection(CSR *graph, int k, double theta)
+unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
 {
     unordered_set<int>::iterator it;
     unordered_set<int> seeds;
@@ -59,7 +59,7 @@ unordered_set<int> nodeSelection(CSR *graph, int k, double theta)
             R.erase(*it);
         }
         gettimeofday(&t4, NULL);
-        printf("deleting sets the most commond node exists in : %ld\n", t4.tv_usec - t3.tv_usec);
+        printf("deleting sets with the most common node: %ld\n", ((t4.tv_sec - t3.tv_sec) * 1000000L + t4.tv_usec - t3.tv_usec));
     }
     gettimeofday(&t2, NULL);
     printf("Selecting seeds: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
@@ -67,7 +67,7 @@ unordered_set<int> nodeSelection(CSR *graph, int k, double theta)
     return seeds;
 }
 
-unordered_set<int> findKSeeds(CSR *graph, int k)
+unordered_set<int> findKSeeds(CSR<float> *graph, int k)
 {
     double n = double(graph->rows.size() - 1);
     struct timeval t1;
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
     // Creating an object of CSVWriter
     CSVReader reader(RANDOM_GRAPH_FILEPATH);
     // Get the data from CSV File
-    CSR *graph = covertToCSR(reader.getData());
+    CSR<float> *graph = covertToCSR(reader.getData());
 
     struct timeval t1, t2;
     for (int i = 0; i < 1; i++)
