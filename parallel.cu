@@ -41,7 +41,7 @@ __global__ void generate_rr_sets(float *data, int *rows, int *cols, bool *out, i
             int currentNodeId = stack->id;
             Node *temp = stack;
             stack = stack->prev;
-            free(temp);
+            delete temp;
 
             // If current is not in visited
             if (!out[tid * numNodes + currentNodeId]) {
@@ -61,7 +61,7 @@ __global__ void generate_rr_sets(float *data, int *rows, int *cols, bool *out, i
                 }
             }
         }
-        free(auxiliary);
+        delete auxiliary;
     }
 }
 
@@ -216,6 +216,8 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
     cudaFree(deviceNodeHistogram);
     cudaFree(deviceProcessedRows);
     cudaFree(deviceStates);
+    free(hostProcessedRows);
+    delete processedRows;
 
     return seeds;
 }

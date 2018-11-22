@@ -187,6 +187,7 @@ void Benchmark::run() {
         struct timeval t1, t2;
         for (int i = 0; i < NUM_TRIALS; i++)
         {
+            printf("Trial %d - %s\n", i, filepath.c_str());
             gettimeofday(&t1, NULL);
             unordered_set<int> seeds = findKSeeds(graph, K_CONSTANT);
             gettimeofday(&t2, NULL);
@@ -198,6 +199,7 @@ void Benchmark::run() {
             }
             printf("- %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
         }
+        delete graph;
     }
 }
 
