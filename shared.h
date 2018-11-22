@@ -40,13 +40,12 @@ struct CSR
     CSR() : data(), rows(), cols(){};
 };
 
-
 class Benchmark
 {
     vector<string> files;
     unordered_set<int> (*nodeSelection)(CSR<float> *graph, int k, double theta);
 
-    public:
+  public:
     Benchmark();
     unordered_set<int> findKSeeds(CSR<float> *graph, int k);
     void run();

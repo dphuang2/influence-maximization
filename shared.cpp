@@ -152,7 +152,8 @@ CSR<float> *covertToCSR(vector<vector<string>> rawData)
     return graph;
 }
 
-Benchmark::Benchmark() {
+Benchmark::Benchmark()
+{
     files.push_back("datasets/random_graph_20.txt");
     files.push_back("datasets/random_graph_30.txt");
     files.push_back("datasets/random_graph_40.txt");
@@ -169,8 +170,10 @@ Benchmark::Benchmark() {
     files.push_back("datasets/random_graph_30000.txt");
 }
 
-void Benchmark::run() {
-    for (int file = 0; file < files.size(); file++) {
+void Benchmark::run()
+{
+    for (int file = 0; file < files.size(); file++)
+    {
         string filepath = files[file];
         if (!fileExists(filepath))
         {
@@ -203,7 +206,8 @@ void Benchmark::run() {
     }
 }
 
-void Benchmark::setNodeSelectionFunction(unordered_set<int> (*func)(CSR<float> *graph, int k, double theta)) {
+void Benchmark::setNodeSelectionFunction(unordered_set<int> (*func)(CSR<float> *graph, int k, double theta))
+{
     nodeSelection = func;
 }
 
