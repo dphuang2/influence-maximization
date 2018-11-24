@@ -20,7 +20,7 @@
 #define L_CONSTANT 1
 #define EPSILON_CONSTANT 0.2
 #define K_CONSTANT 10
-#define NUM_TRIALS 2
+#define NUM_TRIALS 100
 
 #define BLOCK_SIZE 1024
 #define TILE_X_3D 4

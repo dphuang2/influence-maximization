@@ -156,7 +156,6 @@ Benchmark::Benchmark()
 {
     files.push_back("datasets/random_graph_20.txt");
     files.push_back("datasets/random_graph_30.txt");
-    /*
     files.push_back("datasets/random_graph_40.txt");
     files.push_back("datasets/random_graph_50.txt");
     files.push_back("datasets/random_graph_60.txt");
@@ -169,7 +168,6 @@ Benchmark::Benchmark()
     files.push_back("datasets/random_graph_8000.txt");
     files.push_back("datasets/random_graph_10000.txt");
     files.push_back("datasets/random_graph_30000.txt");
-    */
 }
 
 void Benchmark::run()
