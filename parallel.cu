@@ -1,6 +1,4 @@
 #include "shared.h"
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
 #include <curand_kernel.h>
 
 using namespace std;
@@ -12,6 +10,25 @@ typedef struct Node
     Node *next;
     __device__ Node(int id) : id(id){};
 } Node_t;
+
+#define CUDA_CHECK(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
+int maxIndex(int * array, int size) {
+    int max = 0;
+    for (int i = 0; i < size; i++) {
+        if (array[i] > array[max])
+            max = i;
+    }
+    return max;
+}
 
 __global__ void init_rng(int nthreads, curandState *states, unsigned long long seed, unsigned long long offset)
 {
@@ -115,6 +132,7 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
     int *deviceRows;
     int *deviceCols;
     int *deviceNodeHistogram;
+    int *hostNodeHistogram;
     bool *deviceProcessedRows;
     bool *hostProcessedRows;
     curandState *deviceStates;
@@ -123,21 +141,22 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
     int sizeOfData = graph->data.size() * sizeof(float);
     int sizeOfRows = graph->rows.size() * sizeof(int);
     int sizeOfCols = graph->cols.size() * sizeof(int);
-    cudaMalloc((void **)&deviceDataFloat, sizeOfData);
-    cudaMalloc((void **)&deviceRows, sizeOfRows);
-    cudaMalloc((void **)&deviceCols, sizeOfCols);
-    cudaMemcpy(deviceDataFloat, &(graph->data[0]), sizeOfData, cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceRows, &(graph->rows[0]), sizeOfRows, cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceCols, &(graph->cols[0]), sizeOfCols, cudaMemcpyHostToDevice);
+    CUDA_CHECK(cudaMalloc((void **)&deviceDataFloat, sizeOfData));
+    CUDA_CHECK(cudaMalloc((void **)&deviceRows, sizeOfRows));
+    CUDA_CHECK(cudaMalloc((void **)&deviceCols, sizeOfCols));
+    CUDA_CHECK(cudaMemcpy(deviceDataFloat, &(graph->data[0]), sizeOfData, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(deviceRows, &(graph->rows[0]), sizeOfRows, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(deviceCols, &(graph->cols[0]), sizeOfCols, cudaMemcpyHostToDevice));
 
     // Initialize output of kernel
     int numNodes = (int)graph->rows.size() - 1;
-    int sizeOfNodeHistogram = sizeof(int) * numNodes;
-    cudaMalloc((void **)&deviceNodeHistogram, sizeOfNodeHistogram);
-    cudaMemset(deviceNodeHistogram, 0, sizeOfNodeHistogram);
+    int sizeOfNodeHistogram = numNodes * sizeof(int);
+    CUDA_CHECK(cudaMalloc((void **)&deviceNodeHistogram, sizeOfNodeHistogram));
+    CUDA_CHECK(cudaMemset(deviceNodeHistogram, 0, sizeOfNodeHistogram));
+    hostNodeHistogram = (int*) malloc(sizeOfNodeHistogram);
 
     // Calculate number of batches
-    cudaMemGetInfo(&freeGPUBytes, &totalGPUBytes);
+    CUDA_CHECK(cudaMemGetInfo(&freeGPUBytes, &totalGPUBytes));
     int numRowsPerBatch = ceil(
         ((freeGPUBytes / 1.5) - (4 * numNodes + pow(numNodes, 2))) /
         (numNodes + sizeof(curandState)));
@@ -145,15 +164,15 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
 
     // Initialize processed rows output
     long long int sizeOfProcessedRows = sizeof(bool) * numRowsPerBatch * numNodes;
-    cudaMalloc((void **)&deviceProcessedRows, sizeOfProcessedRows);
+    CUDA_CHECK(cudaMalloc((void **)&deviceProcessedRows, sizeOfProcessedRows));
     hostProcessedRows = (bool *)malloc(sizeOfProcessedRows);
 
     // Initialize RNG States
-    cudaMalloc((void **)&deviceStates, numRowsPerBatch * sizeof(curandState));
+    CUDA_CHECK(cudaMalloc((void **)&deviceStates, numRowsPerBatch * sizeof(curandState)));
     dim3 dimGrid(ceil(float(numRowsPerBatch) / BLOCK_SIZE), 1, 1);
     dim3 dimBlock(BLOCK_SIZE, 1, 1);
     init_rng<<<dimGrid, dimBlock>>>(numRowsPerBatch, deviceStates, 1, 0);
-    cudaDeviceSynchronize();
+    CUDA_CHECK(cudaDeviceSynchronize());
 
     // Process batches
     int numRowsProcessed = 0;
@@ -162,7 +181,7 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
     for (int i = 0; i < numBatches; i++)
     {
         // Reset processed rows for new kernel
-        cudaMemset(deviceProcessedRows, false, sizeOfProcessedRows);
+        CUDA_CHECK(cudaMemset(deviceProcessedRows, false, sizeOfProcessedRows));
 
         // Process the minimum number of rows
         int numRowsToProcess = min(numRowsPerBatch, (int)ceil(theta) - numRowsProcessed);
@@ -171,10 +190,10 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
         dimGrid = dim3(ceil(float(numRowsToProcess) / BLOCK_SIZE), 1, 1);
         dimBlock = dim3(BLOCK_SIZE, 1, 1);
         generate_rr_sets<<<dimGrid, dimBlock>>>(deviceDataFloat, deviceRows, deviceCols, deviceProcessedRows, deviceNodeHistogram, numNodes, numRowsToProcess, deviceStates);
-        cudaDeviceSynchronize();
+        CUDA_CHECK(cudaDeviceSynchronize());
 
         // Add to our running processedRows CSR using the rows and cols members
-        cudaMemcpy(hostProcessedRows, deviceProcessedRows, sizeOfProcessedRows, cudaMemcpyDeviceToHost);
+        CUDA_CHECK(cudaMemcpy(hostProcessedRows, deviceProcessedRows, sizeOfProcessedRows, cudaMemcpyDeviceToHost));
         for (int j = 0; j < numRowsToProcess; j++)
         {
             processedRows->rows.push_back(processedRows->data.size());
@@ -192,44 +211,45 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
         numRowsProcessed += numRowsToProcess;
     }
 
-    // Initialize device pointer for max element reduction
-    thrust::device_ptr<int> dev_ptr(deviceNodeHistogram);
-
     // Copy our processedRows CSR to device
-    cudaFree(deviceRows);
-    cudaFree(deviceCols);
+    CUDA_CHECK(cudaFree(deviceRows));
+    CUDA_CHECK(cudaFree(deviceCols));
+    CUDA_CHECK(cudaFree(deviceDataFloat));
     sizeOfData = processedRows->data.size() * sizeof(char);
     sizeOfRows = processedRows->rows.size() * sizeof(int);
     sizeOfCols = processedRows->cols.size() * sizeof(int);
-    cudaMalloc((void **)&deviceDataBool, sizeOfData);
-    cudaMalloc((void **)&deviceRows, sizeOfRows);
-    cudaMalloc((void **)&deviceCols, sizeOfCols);
-    cudaMemcpy(deviceDataBool, &(processedRows->data[0]), sizeOfData, cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceRows, &(processedRows->rows[0]), sizeOfRows, cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceCols, &(processedRows->cols[0]), sizeOfCols, cudaMemcpyHostToDevice);
-
+    CUDA_CHECK(cudaMalloc((void **)&deviceDataBool, sizeOfData));
+    CUDA_CHECK(cudaMalloc((void **)&deviceRows, sizeOfRows));
+    CUDA_CHECK(cudaMalloc((void **)&deviceCols, sizeOfCols));
+    CUDA_CHECK(cudaMemcpy(deviceDataBool, &(processedRows->data[0]), sizeOfData, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(deviceRows, &(processedRows->rows[0]), sizeOfRows, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(deviceCols, &(processedRows->cols[0]), sizeOfCols, cudaMemcpyHostToDevice));
+    
     // Initialize dimensions for count updating
-    int mostCommonNode;
+    unsigned int mostCommonNode;
     dimGrid = dim3(ceil(float(numRowsProcessed) / BLOCK_SIZE), 1, 1);
     dimBlock = dim3(BLOCK_SIZE, 1, 1);
+
+    // Copy out node histogram to host
+    CUDA_CHECK(cudaMemcpy(hostNodeHistogram, deviceNodeHistogram, sizeOfNodeHistogram, cudaMemcpyDeviceToHost));
+
     // Select nodes using histogram and processedRows CSR
     for (int j = 0; j < k - 1; j++)
     {
-        mostCommonNode = (thrust::max_element(dev_ptr, dev_ptr + numNodes) - dev_ptr);
+        mostCommonNode = maxIndex(hostNodeHistogram, numNodes);
         seeds.insert(mostCommonNode);
         update_counts<<<dimGrid, dimBlock>>>(deviceDataBool, deviceRows, deviceCols, deviceNodeHistogram, numRowsProcessed, numNodes, mostCommonNode);
-        cudaDeviceSynchronize();
+        CUDA_CHECK(cudaDeviceSynchronize());
+        CUDA_CHECK(cudaMemcpy(hostNodeHistogram, deviceNodeHistogram, sizeOfNodeHistogram, cudaMemcpyDeviceToHost));
     }
-    mostCommonNode = (thrust::max_element(dev_ptr, dev_ptr + numNodes) - dev_ptr);
+    mostCommonNode = maxIndex(hostNodeHistogram, numNodes);
     seeds.insert(mostCommonNode);
 
-    cudaFree(deviceDataFloat);
-    cudaFree(deviceDataBool);
-    cudaFree(deviceRows);
-    cudaFree(deviceCols);
-    cudaFree(deviceNodeHistogram);
-    cudaFree(deviceProcessedRows);
-    cudaFree(deviceStates);
+    CUDA_CHECK(cudaFree(deviceDataBool));
+    CUDA_CHECK(cudaFree(deviceRows));
+    CUDA_CHECK(cudaFree(deviceCols));
+    CUDA_CHECK(cudaFree(deviceProcessedRows));
+    CUDA_CHECK(cudaFree(deviceStates));
     free(hostProcessedRows);
     delete processedRows;
 
