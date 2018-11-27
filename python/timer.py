@@ -17,6 +17,8 @@ def timeit(method):
         cumulative_runtimes[method.__name__] += te - ts
         if method.__name__ == 'find_k_seeds':
             find_k_seeds_runtimes[method.__name__ + ':' + str(len(args[0][1]) - 1)].append(te-ts)
+        if method.__name__ == 'find_k_seeds_IMM':
+            find_k_seeds_runtimes[method.__name__ + ':' + str(len(args[0][1]) - 1)].append(te-ts)
         return result
 
     return timed

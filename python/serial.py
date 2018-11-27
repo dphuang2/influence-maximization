@@ -17,7 +17,7 @@ from timer import (cumulative_runtimes, execution_counts,
 
 L_CONSTANT = 1
 EPSILON_CONSTANT = 0.2
-K_CONSTANT = 2
+K_CONSTANT = 10
 
 TWITTER_DATASET_FILEPATH = './datasets/twitter'
 TWITTER_DATASET_PICKLE_FILEPATH = './datasets/twitter.pickle'
@@ -29,7 +29,7 @@ def node_selection_experimental(graph, k, theta):
     # Initialize empty set R
     R = {}
     # Generate theta random RR sets and insert them into R
-    for i in range(theta):
+    for i in range(math.ceil(theta)):
         R[i] = random_reverse_reachable_set(graph)
     # Initialize a empty node set S_k
     S_k = []
@@ -140,7 +140,7 @@ def node_selection(graph, k, theta):
         # Remove from R all RR sets that are covered by v_j
         for set_id in sets_to_remove:
             del R[set_id]
-    return S_k
+    return S_k, len(R.keys()) # Return number of RR sets uncovered (performance comparison and IMM necessary)
 
 	
 
@@ -154,20 +154,22 @@ def calculate_lambda(n, k, l, e):
 @timeit
 def calculate_lambda_prime(n, k, l, eps):
     return (2.0 + 2.0/3.0 * eps) * (math.log(comb(n, k)) + l * math.log(n) * math.log(math.log(n)/math.log(2))) * n * eps ** (-2)
-	
+
+@timeit	
 def find_theta_IMM(graph,n,k,e,l):
 	"""Finds the tight lower bound on OPT derived in the IMM algorithm"""
 	lb = 1
 	eps = e * math.sqrt(2)
+	lam = calculate_lambda_prime(n,k,l,eps)
 	iterations = int(math.ceil(math.log(n)/math.log(2) - 1))
 	for i in range(iterations):
 		x = n/(2.0 ** (i+1))
-		theta = calculate_lambda_prime(n,k,l,eps)/x
-		S_k, R, R_used = node_selection_experimental(graph,k,theta)
-		frac = len(R_used) * 1.0/theta
+		theta = lam/x
+		S_k, uncovered = node_selection(graph,k,theta)
+		frac = (theta-uncovered) * 1.0/theta
 		if n*frac >= (1+eps)*x:
-			return calculate_lambda_prime(n,k,l,eps) / (n * frac / (1+eps))
-	return calculate_lambda_prime(n,k,l,eps)
+			return lam / (n * frac / (1+eps))
+	return lam
 	
 # Section for IMM algorithm finished
 	
@@ -233,6 +235,7 @@ if __name__ == "__main__":
         for j in range(1):
             graph = pickle.load(open(generate_filepath_pickle(i), "rb"))
             print(find_k_seeds(graph, K_CONSTANT))
+            print(find_k_seeds_IMM(graph, K_CONSTANT))
 
     with open("execution_counts.csv", "w") as fp:
 
