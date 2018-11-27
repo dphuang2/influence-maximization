@@ -229,9 +229,13 @@ def find_k_seeds(graph, k):
     theta = lambda_var / kpt
     return node_selection(graph, k, theta)
 
+def find_k_seeds_IMM(graph, k):
+	n = len(graph[1]) - 1
+	theta = find_theta_IMM(graph,n,k,EPSILON_CONSTANT,L_CONSTANT)
+	return node_selection(graph, k, theta), theta
 
 if __name__ == "__main__":
-    for i in range(100, 101):
+    for i in range(800, 801):
         for j in range(1):
             graph = pickle.load(open(generate_filepath_pickle(i), "rb"))
             print(find_k_seeds(graph, K_CONSTANT))
