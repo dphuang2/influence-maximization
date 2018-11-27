@@ -238,7 +238,6 @@ if __name__ == "__main__":
     for i in range(800, 801):
         for j in range(1):
             graph = pickle.load(open(generate_filepath_pickle(i), "rb"))
-            print(find_k_seeds(graph, K_CONSTANT))
             print(find_k_seeds_IMM(graph, K_CONSTANT))
 
     with open("execution_counts.csv", "w") as fp:
