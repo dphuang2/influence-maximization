@@ -5,7 +5,7 @@ from collections import defaultdict
 import numpy as np
 
 counter = -1
-DATASETS_FILEPATH = './datasets/'
+DATASETS_FILEPATH = '../datasets/'
 
 def generate_filepath_txt(num_nodes):
     filename = 'random_graph_' + str(num_nodes)
