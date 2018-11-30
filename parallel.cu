@@ -125,8 +125,6 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
     unordered_set<int>::iterator it;
     unordered_set<int> seeds;
     map<int, unordered_set<int>> R;
-    size_t freeGPUBytes;
-    size_t totalGPUBytes;
     float *deviceDataFloat;
     bool *deviceDataBool;
     int *deviceRows;
@@ -156,22 +154,19 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
     hostNodeHistogram = (int*) malloc(sizeOfNodeHistogram);
 
     // Calculate number of batches
-    CUDA_CHECK(cudaMemGetInfo(&freeGPUBytes, &totalGPUBytes));
-    int numRowsPerBatch = ceil(
-        ((freeGPUBytes / 1.5) - (4 * numNodes + pow(numNodes, 2))) /
-        (numNodes + sizeof(curandState)));
-    int numBatches = ceil(theta / numRowsPerBatch);
+    int numBatches = ceil(theta / NUM_ROWS_PER_BATCH);
 
     // Initialize processed rows output
-    long long int sizeOfProcessedRows = sizeof(bool) * numRowsPerBatch * numNodes;
+    long long int sizeOfProcessedRows = sizeof(bool) * NUM_ROWS_PER_BATCH * numNodes;
     CUDA_CHECK(cudaMalloc((void **)&deviceProcessedRows, sizeOfProcessedRows));
     hostProcessedRows = (bool *)malloc(sizeOfProcessedRows);
 
     // Initialize RNG States
-    CUDA_CHECK(cudaMalloc((void **)&deviceStates, numRowsPerBatch * sizeof(curandState)));
-    dim3 dimGrid(ceil(float(numRowsPerBatch) / BLOCK_SIZE), 1, 1);
+    CUDA_CHECK(cudaMalloc((void **)&deviceStates, NUM_ROWS_PER_BATCH * sizeof(curandState)));
+    dim3 dimGrid((NUM_ROWS_PER_BATCH / BLOCK_SIZE) + 1, 1, 1);
     dim3 dimBlock(BLOCK_SIZE, 1, 1);
-    init_rng<<<dimGrid, dimBlock>>>(numRowsPerBatch, deviceStates, 1, 0);
+    init_rng<<<dimGrid, dimBlock>>>(NUM_ROWS_PER_BATCH, deviceStates, 1, 0);
+    CUDA_CHECK(cudaPeekAtLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 
     // Process batches
@@ -184,12 +179,13 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
         CUDA_CHECK(cudaMemset(deviceProcessedRows, false, sizeOfProcessedRows));
 
         // Process the minimum number of rows
-        int numRowsToProcess = min(numRowsPerBatch, (int)ceil(theta) - numRowsProcessed);
+        int numRowsToProcess = min(NUM_ROWS_PER_BATCH, (int)ceil(theta) - numRowsProcessed);
 
         // Launch RR generation kernel
         dimGrid = dim3(ceil(float(numRowsToProcess) / BLOCK_SIZE), 1, 1);
         dimBlock = dim3(BLOCK_SIZE, 1, 1);
         generate_rr_sets<<<dimGrid, dimBlock>>>(deviceDataFloat, deviceRows, deviceCols, deviceProcessedRows, deviceNodeHistogram, numNodes, numRowsToProcess, deviceStates);
+        CUDA_CHECK(cudaPeekAtLastError());
         CUDA_CHECK(cudaDeviceSynchronize());
 
         // Add to our running processedRows CSR using the rows and cols members
@@ -239,6 +235,7 @@ unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
         mostCommonNode = maxIndex(hostNodeHistogram, numNodes);
         seeds.insert(mostCommonNode);
         update_counts<<<dimGrid, dimBlock>>>(deviceDataBool, deviceRows, deviceCols, deviceNodeHistogram, numRowsProcessed, numNodes, mostCommonNode);
+        CUDA_CHECK(cudaPeekAtLastError());
         CUDA_CHECK(cudaDeviceSynchronize());
         CUDA_CHECK(cudaMemcpy(hostNodeHistogram, deviceNodeHistogram, sizeOfNodeHistogram, cudaMemcpyDeviceToHost));
     }
