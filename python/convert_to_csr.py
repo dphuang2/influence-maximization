@@ -1,10 +1,14 @@
 import pickle
 from collections import defaultdict
+import sys
 
 if __name__=="__main__":
+    if len(sys.argv) != 2:
+        print("Please provide filepath to dataset in two column node-to-node edge format")
+        sys.exit(0)
 
     graph = defaultdict(set)
-    with open("twitter_combined.txt", "r") as fp:
+    with open(sys.argv[1], "r") as fp:
         lines = fp.read().split('\n')
     nodes = set()
     for line in lines:
@@ -36,5 +40,5 @@ if __name__=="__main__":
         row_index += len(graph[vertex])
     csr[1].append(len(csr[0]))
 
-    with open('twitter.pickle', 'wb') as fp:
+    with open(sys.argv[1] + '.pickle', 'wb') as fp:
         pickle.dump(csr, fp)
