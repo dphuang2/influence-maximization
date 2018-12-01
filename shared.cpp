@@ -58,7 +58,7 @@ double Benchmark::findTheta(CSR<float> *graph, int n, int k, double e, double l)
         double theta = lam / x;
         int unconvered = nodeSelection(graph, k, theta).second;
         double frac = (theta - unconvered) / theta;
-        if (n * frac >= pow(1 + eps, x))
+        if (n * frac >= (1 + eps) * x)
             return lam / (n * frac / (1 + eps));
     }
     return lam;
