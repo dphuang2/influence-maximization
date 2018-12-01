@@ -23,24 +23,6 @@ double nCr(double n, double k)
     return C[(int)n][(int)k];
 }
 
-double calculateLambda(double n, double k, double l, double e)
-{
-    return (8.0 + 2 * e) * n * (l * log(n) + log(nCr(n, k)) + log(2) * pow(e, -2));
-}
-
-int width(CSR<float> *graph, unordered_set<int> nodes)
-{
-    int count = 0;
-    unordered_set<int>::iterator it;
-    for (it = nodes.begin(); it != nodes.end(); it++)
-    {
-        int dataStart = graph->rows[*it];
-        int dataEnd = graph->rows[*it + 1];
-        count += dataEnd - dataStart;
-    }
-    return count;
-}
-
 double calculateLambdaPrime(int n, int k, double l, double eps) 
 {
     return (2.0 + 2.0/3.0 * eps) * (log(nCr(n, k)) + l * log(n) * log(log2(n))) * n * pow(eps, -2);
