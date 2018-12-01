@@ -152,24 +152,6 @@ CSR<float> *covertToCSR(vector<vector<string>> rawData)
     return graph;
 }
 
-Benchmark::Benchmark()
-{
-    files.push_back("datasets/random_graph_20.txt");
-    files.push_back("datasets/random_graph_30.txt");
-    files.push_back("datasets/random_graph_40.txt");
-    files.push_back("datasets/random_graph_50.txt");
-    files.push_back("datasets/random_graph_60.txt");
-    files.push_back("datasets/random_graph_70.txt");
-    files.push_back("datasets/random_graph_80.txt");
-    files.push_back("datasets/random_graph_90.txt");
-    files.push_back("datasets/random_graph_100.txt");
-    files.push_back("datasets/random_graph_800.txt");
-    files.push_back("datasets/random_graph_5000.txt");
-    files.push_back("datasets/random_graph_8000.txt");
-    files.push_back("datasets/random_graph_10000.txt");
-    files.push_back("datasets/random_graph_30000.txt");
-}
-
 void Benchmark::run()
 {
     for (int file = 0; file < files.size(); file++)
@@ -235,4 +217,22 @@ unordered_set<int> Benchmark::findKSeeds(CSR<float> *graph, int k)
     printf("nodeSelection: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
 
     return selectedNodes;
+}
+
+Benchmark::Benchmark()
+{
+    files.push_back("../datasets/random_graph_20.txt");
+    files.push_back("../datasets/random_graph_30.txt");
+    files.push_back("../datasets/random_graph_40.txt");
+    files.push_back("../datasets/random_graph_50.txt");
+    files.push_back("../datasets/random_graph_60.txt");
+    files.push_back("../datasets/random_graph_70.txt");
+    files.push_back("../datasets/random_graph_80.txt");
+    files.push_back("../datasets/random_graph_90.txt");
+    files.push_back("../datasets/random_graph_100.txt");
+    files.push_back("../datasets/random_graph_800.txt");
+    files.push_back("../datasets/random_graph_5000.txt");
+    files.push_back("../datasets/random_graph_8000.txt");
+    files.push_back("../datasets/random_graph_10000.txt");
+    files.push_back("../datasets/random_graph_30000.txt");
 }
