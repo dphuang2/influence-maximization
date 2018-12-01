@@ -1,38 +1,5 @@
 #include "shared.h"
 
-unordered_set<int> randomReverseReachableSet(CSR<float> *graph)
-{
-    // Seed our randomness
-    random_device random_device;
-    mt19937 engine{random_device()};
-
-    double n = double(graph->rows.size() - 1);
-    uniform_int_distribution<int> dist(0, n - 1);
-    int start = dist(engine);
-    vector<int> stack{start};
-    unordered_set<int> visited;
-    while (!stack.empty())
-    {
-        int currentNode = stack.back();
-        stack.pop_back();
-        if (visited.count(currentNode) == 0)
-        {
-            visited.insert(currentNode);
-            int dataStart = graph->rows[currentNode];
-            int dataEnd = graph->rows[currentNode + 1];
-
-            for (int i = dataStart; i < dataEnd; i++)
-            {
-                if (((double)rand() / RAND_MAX) < graph->data[i])
-                {
-                    stack.push_back(graph->cols[i]);
-                }
-            }
-        }
-    }
-    return visited;
-}
-
 pair<int, unordered_set<int>> findMostCommonNode(map<int, unordered_set<int>> R)
 {
     map<int, int> counts;
@@ -60,7 +27,7 @@ pair<int, unordered_set<int>> findMostCommonNode(map<int, unordered_set<int>> R)
     return make_pair(mostCommonNode, existsInSet[mostCommonNode]);
 }
 
-pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double theta)
+unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
 {
     unordered_set<int>::iterator it;
     unordered_set<int> seeds;
@@ -81,7 +48,7 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
         }
     }
 
-    return make_pair(seeds, R.size());
+    return seeds;
 }
 
 int main(int argc, char **argv)

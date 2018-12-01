@@ -88,7 +88,7 @@ __global__ void generate_rr_sets(float *data, int *rows, int *cols, bool *out, i
     }
 }
 
-__global__ void update_counts(bool *data, int *rows, int *cols, int *histogram, int *uncovered, int numRows, int numNodes, int nodeToDelete)
+__global__ void update_counts(bool *data, int *rows, int *cols, int *histogram, int numRows, int numNodes, int nodeToDelete)
 {
     int row = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -105,7 +105,6 @@ __global__ void update_counts(bool *data, int *rows, int *cols, int *histogram, 
         if (data[i] && cols[i] == nodeToDelete)
         {
             exists = true;
-            atomicSub(&uncovered[0], 1);
             break;
         }
     }
@@ -121,7 +120,7 @@ __global__ void update_counts(bool *data, int *rows, int *cols, int *histogram, 
     }
 }
 
-pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double theta)
+unordered_set<int> nodeSelection(CSR<float> *graph, int k, double theta)
 {
     unordered_set<int>::iterator it;
     unordered_set<int> seeds;
@@ -132,8 +131,6 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
     int *deviceCols;
     int *deviceNodeHistogram;
     int *hostNodeHistogram;
-    int *deviceUncovered;
-    int hostUncovered;
     bool *deviceProcessedRows;
     bool *hostProcessedRows;
     curandState *deviceStates;
@@ -220,12 +217,9 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
     CUDA_CHECK(cudaMalloc((void **)&deviceDataBool, sizeOfData));
     CUDA_CHECK(cudaMalloc((void **)&deviceRows, sizeOfRows));
     CUDA_CHECK(cudaMalloc((void **)&deviceCols, sizeOfCols));
-    CUDA_CHECK(cudaMalloc((void **)&deviceUncovered, sizeof(int)));
     CUDA_CHECK(cudaMemcpy(deviceDataBool, &(processedRows->data[0]), sizeOfData, cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemcpy(deviceRows, &(processedRows->rows[0]), sizeOfRows, cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemcpy(deviceCols, &(processedRows->cols[0]), sizeOfCols, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(deviceUncovered, &numRowsProcessed, sizeof(int), cudaMemcpyHostToDevice));
-
     
     // Initialize dimensions for count updating
     unsigned int mostCommonNode;
@@ -236,19 +230,19 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
     CUDA_CHECK(cudaMemcpy(hostNodeHistogram, deviceNodeHistogram, sizeOfNodeHistogram, cudaMemcpyDeviceToHost));
 
     // Select nodes using histogram and processedRows CSR
-    for (int j = 0; j < k; j++)
+    for (int j = 0; j < k - 1; j++)
     {
         mostCommonNode = maxIndex(hostNodeHistogram, numNodes);
         seeds.insert(mostCommonNode);
-        update_counts<<<dimGrid, dimBlock>>>(deviceDataBool, deviceRows, deviceCols, deviceNodeHistogram, deviceUncovered, numRowsProcessed, numNodes, mostCommonNode);
+        update_counts<<<dimGrid, dimBlock>>>(deviceDataBool, deviceRows, deviceCols, deviceNodeHistogram, numRowsProcessed, numNodes, mostCommonNode);
         CUDA_CHECK(cudaPeekAtLastError());
         CUDA_CHECK(cudaDeviceSynchronize());
         CUDA_CHECK(cudaMemcpy(hostNodeHistogram, deviceNodeHistogram, sizeOfNodeHistogram, cudaMemcpyDeviceToHost));
     }
+    mostCommonNode = maxIndex(hostNodeHistogram, numNodes);
+    seeds.insert(mostCommonNode);
 
-    CUDA_CHECK(cudaMemcpy(&hostUncovered, deviceUncovered, sizeof(int), cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaFree(deviceDataBool));
-    CUDA_CHECK(cudaFree(deviceUncovered));
     CUDA_CHECK(cudaFree(deviceRows));
     CUDA_CHECK(cudaFree(deviceCols));
     CUDA_CHECK(cudaFree(deviceProcessedRows));
@@ -256,7 +250,7 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
     free(hostProcessedRows);
     delete processedRows;
 
-    return make_pair(seeds, hostUncovered);
+    return seeds;
 }
 
 int main(int argc, char **argv)

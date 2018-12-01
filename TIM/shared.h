@@ -44,14 +44,13 @@ struct CSR
 class Benchmark
 {
     vector<string> files;
-    pair<unordered_set<int>, int> (*nodeSelection)(CSR<float> *graph, int k, double theta);
+    unordered_set<int> (*nodeSelection)(CSR<float> *graph, int k, double theta);
 
   public:
     Benchmark();
     unordered_set<int> findKSeeds(CSR<float> *graph, int k);
-    double findTheta(CSR<float> *graph, int n, int k, double e, double l);
     void run();
-    void setNodeSelectionFunction(pair<unordered_set<int>, int> (*func)(CSR<float> *graph, int k, double theta));
+    void setNodeSelectionFunction(unordered_set<int> (*func)(CSR<float> *graph, int k, double theta));
 };
 
 class CSVReader

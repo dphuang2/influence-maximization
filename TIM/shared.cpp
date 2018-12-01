@@ -28,6 +28,39 @@ double calculateLambda(double n, double k, double l, double e)
     return (8.0 + 2 * e) * n * (l * log(n) + log(nCr(n, k)) + log(2) * pow(e, -2));
 }
 
+unordered_set<int> randomReverseReachableSet(CSR<float> *graph)
+{
+    // Seed our randomness
+    random_device random_device;
+    mt19937 engine{random_device()};
+
+    double n = double(graph->rows.size() - 1);
+    uniform_int_distribution<int> dist(0, n - 1);
+    int start = dist(engine);
+    vector<int> stack{start};
+    unordered_set<int> visited;
+    while (!stack.empty())
+    {
+        int currentNode = stack.back();
+        stack.pop_back();
+        if (visited.count(currentNode) == 0)
+        {
+            visited.insert(currentNode);
+            int dataStart = graph->rows[currentNode];
+            int dataEnd = graph->rows[currentNode + 1];
+
+            for (int i = dataStart; i < dataEnd; i++)
+            {
+                if (((double)rand() / RAND_MAX) < graph->data[i])
+                {
+                    stack.push_back(graph->cols[i]);
+                }
+            }
+        }
+    }
+    return visited;
+}
+
 int width(CSR<float> *graph, unordered_set<int> nodes)
 {
     int count = 0;
@@ -41,27 +74,27 @@ int width(CSR<float> *graph, unordered_set<int> nodes)
     return count;
 }
 
-double calculateLambdaPrime(int n, int k, double l, double eps) 
+double kptEstimation(CSR<float> *graph, int k)
 {
-    return (2.0 + 2.0/3.0 * eps) * (log(nCr(n, k)) + l * log(n) * log(log2(n))) * n * pow(eps, -2);
-}
-
-double Benchmark::findTheta(CSR<float> *graph, int n, int k, double e, double l)
-{
-    double lb = 1;
-    double eps = e * sqrt(2);
-    double lam = calculateLambdaPrime(n, k, l, eps);
-
-    for (int i = 0; i < ceil(log2(n)) - 1; i++)
+    double n = double(graph->rows.size() - 1);
+    double m = double(graph->data.size());
+    for (int i = 1; i < log2(n); i++)
     {
-        double x = n / pow(2.0, i + 1);
-        double theta = lam / x;
-        int unconvered = nodeSelection(graph, k, theta).second;
-        double frac = (theta - unconvered) / theta;
-        if (n * frac >= pow(1 + eps, x))
-            return lam / (n * frac / (1 + eps));
+        double ci = 6 * L_CONSTANT * log(n) + 6 * log(log2(n)) * pow(2, i);
+        double sum = 0;
+        for (int j = 0; j < ci; j++)
+        {
+            unordered_set<int> R = randomReverseReachableSet(graph);
+            int w_r = width(graph, R);
+            double k_r = 1 - pow((1 - (w_r / m)), k);
+            sum += k_r;
+        }
+        if (sum / ci > 1 / pow(2, i))
+        {
+            return n * sum / (2 * ci);
+        }
     }
-    return lam;
+    return 1.0;
 }
 
 bool fileExists(const std::string &name)
@@ -119,6 +152,24 @@ CSR<float> *covertToCSR(vector<vector<string>> rawData)
     return graph;
 }
 
+Benchmark::Benchmark()
+{
+    files.push_back("datasets/random_graph_20.txt");
+    files.push_back("datasets/random_graph_30.txt");
+    files.push_back("datasets/random_graph_40.txt");
+    files.push_back("datasets/random_graph_50.txt");
+    files.push_back("datasets/random_graph_60.txt");
+    files.push_back("datasets/random_graph_70.txt");
+    files.push_back("datasets/random_graph_80.txt");
+    files.push_back("datasets/random_graph_90.txt");
+    files.push_back("datasets/random_graph_100.txt");
+    files.push_back("datasets/random_graph_800.txt");
+    files.push_back("datasets/random_graph_5000.txt");
+    files.push_back("datasets/random_graph_8000.txt");
+    files.push_back("datasets/random_graph_10000.txt");
+    files.push_back("datasets/random_graph_30000.txt");
+}
+
 void Benchmark::run()
 {
     for (int file = 0; file < files.size(); file++)
@@ -155,7 +206,7 @@ void Benchmark::run()
     }
 }
 
-void Benchmark::setNodeSelectionFunction(pair<unordered_set<int>, int> (*func)(CSR<float> *graph, int k, double theta))
+void Benchmark::setNodeSelectionFunction(unordered_set<int> (*func)(CSR<float> *graph, int k, double theta))
 {
     nodeSelection = func;
 }
@@ -167,32 +218,21 @@ unordered_set<int> Benchmark::findKSeeds(CSR<float> *graph, int k)
     struct timeval t2;
 
     gettimeofday(&t1, NULL);
-    double theta = findTheta(graph, n, k, EPSILON_CONSTANT, L_CONSTANT);
+    double kpt = kptEstimation(graph, k);
     gettimeofday(&t2, NULL);
-    printf("findTheta: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
+    printf("kptEstimation: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
 
     gettimeofday(&t1, NULL);
-    unordered_set<int> selectedNodes = nodeSelection(graph, k, theta).first;
+    double lambda = calculateLambda(n, k, L_CONSTANT, EPSILON_CONSTANT);
+    gettimeofday(&t2, NULL);
+    printf("calculateLambda: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
+
+    double theta = lambda / kpt;
+
+    gettimeofday(&t1, NULL);
+    unordered_set<int> selectedNodes = nodeSelection(graph, k, theta);
     gettimeofday(&t2, NULL);
     printf("nodeSelection: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
 
     return selectedNodes;
-}
-
-Benchmark::Benchmark()
-{
-    //files.push_back("datasets/random_graph_20.txt");
-    //files.push_back("datasets/random_graph_30.txt");
-    //files.push_back("datasets/random_graph_40.txt");
-    //files.push_back("datasets/random_graph_50.txt");
-    //files.push_back("datasets/random_graph_60.txt");
-    //files.push_back("datasets/random_graph_70.txt");
-    //files.push_back("datasets/random_graph_80.txt");
-    //files.push_back("datasets/random_graph_90.txt");
-    //files.push_back("datasets/random_graph_100.txt");
-    files.push_back("datasets/random_graph_800.txt");
-    files.push_back("datasets/random_graph_5000.txt");
-    files.push_back("datasets/random_graph_8000.txt");
-    files.push_back("datasets/random_graph_10000.txt");
-    files.push_back("datasets/random_graph_30000.txt");
 }
