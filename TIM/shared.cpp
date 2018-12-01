@@ -25,7 +25,7 @@ double nCr(double n, double k)
 
 double calculateLambda(double n, double k, double l, double e)
 {
-    return (8.0 + 2 * e) * n * (l * log(n) + log(nCr(n, k)) + log(2) * pow(e, -2));
+    return (8.0 + 2 * e) * n * (l * log(n) + log(nCr(n, k)) + log(2)) * pow(e, -2);
 }
 
 unordered_set<int> randomReverseReachableSet(CSR<float> *graph)
