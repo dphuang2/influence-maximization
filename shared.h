@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <sstream>
 #include <sys/time.h>
+#include <queue>
 #include <unordered_set>
 #include <fstream>
 #include <iostream>
@@ -15,6 +16,7 @@
 #include <unistd.h>
 #include <utility>
 #include <vector>
+#include <list>
 
 #define AUXILIARY_NODE_ID -1
 #define L_CONSTANT 1

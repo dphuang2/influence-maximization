@@ -1,16 +1,15 @@
 #include "shared.h"
 
+random_device myrand;
+mt19937 engine{myrand()};
+
 vector<int> randomReverseReachableSet(CSR<float> *graph)
 {
-    // Seed our randomness
-    random_device random_device;
-    mt19937 engine{random_device()};
-
     int n = graph->rows.size() - 1;
     uniform_int_distribution<int> dist(0, n - 1);
     int start = dist(engine);
     vector<int> stack{start};
-    vector<int> visited;
+    vector<int> reached;
     vector<bool> haveVisited(n, false);
     while (!stack.empty())
     {
@@ -19,7 +18,7 @@ vector<int> randomReverseReachableSet(CSR<float> *graph)
         if (!haveVisited[currentNode])
         {
             haveVisited[currentNode] = true;
-            visited.push_back(currentNode);
+            reached.push_back(currentNode);
             int dataStart = graph->rows[currentNode];
             int dataEnd = graph->rows[currentNode + 1];
 
@@ -32,7 +31,7 @@ vector<int> randomReverseReachableSet(CSR<float> *graph)
             }
         }
     }
-    return visited;
+    return reached;
 }
 
 pair<int, vector<int>> findMostCommonNode(map<int, vector<int>> R)
