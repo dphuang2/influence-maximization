@@ -70,8 +70,6 @@ double nCr(double n, double k);
 
 double calculateLambda(double n, double k, double l, double e);
 
-unordered_set<int> randomReverseReachableSet(CSR<float> *graph);
-
 int width(CSR<float> *graph, unordered_set<int> nodes);
 
 double kptEstimation(CSR<float> *graph, int k);

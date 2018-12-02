@@ -1,23 +1,25 @@
 #include "shared.h"
 
-unordered_set<int> randomReverseReachableSet(CSR<float> *graph)
+vector<int> randomReverseReachableSet(CSR<float> *graph)
 {
     // Seed our randomness
     random_device random_device;
     mt19937 engine{random_device()};
 
-    double n = double(graph->rows.size() - 1);
+    int n = graph->rows.size() - 1;
     uniform_int_distribution<int> dist(0, n - 1);
     int start = dist(engine);
     vector<int> stack{start};
-    unordered_set<int> visited;
+    vector<int> visited;
+    vector<bool> haveVisited(n, false);
     while (!stack.empty())
     {
         int currentNode = stack.back();
         stack.pop_back();
-        if (visited.count(currentNode) == 0)
+        if (!haveVisited[currentNode])
         {
-            visited.insert(currentNode);
+            haveVisited[currentNode] = true;
+            visited.push_back(currentNode);
             int dataStart = graph->rows[currentNode];
             int dataEnd = graph->rows[currentNode + 1];
 
@@ -33,22 +35,22 @@ unordered_set<int> randomReverseReachableSet(CSR<float> *graph)
     return visited;
 }
 
-pair<int, unordered_set<int>> findMostCommonNode(map<int, unordered_set<int>> R)
+pair<int, vector<int>> findMostCommonNode(map<int, vector<int>> R)
 {
     map<int, int> counts;
-    unordered_set<int>::iterator j;
-    map<int, unordered_set<int>> existsInSet;
-    map<int, unordered_set<int>>::iterator i;
+    vector<int>::iterator j;
+    map<int, vector<int>> existsInSet;
+    map<int, vector<int>>::iterator i;
     int maximum = 0;
     int mostCommonNode = 0;
 
     for (i = R.begin(); i != R.end(); i++)
     {
         int setId = i->first;
-        unordered_set<int> unordered_set = i->second;
-        for (j = unordered_set.begin(); j != unordered_set.end(); j++)
+        vector<int> visited = i->second;
+        for (j = visited.begin(); j != visited.end(); j++)
         {
-            existsInSet[*j].insert(setId);
+            existsInSet[*j].push_back(setId);
             counts[*j] += 1;
             if (counts[*j] > maximum)
             {
@@ -62,9 +64,9 @@ pair<int, unordered_set<int>> findMostCommonNode(map<int, unordered_set<int>> R)
 
 pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double theta)
 {
-    unordered_set<int>::iterator it;
+    vector<int>::iterator it;
     unordered_set<int> seeds;
-    map<int, unordered_set<int>> R;
+    map<int, vector<int>> R;
 
     for (int i = 0; i < ceil(theta); i++)
     {
@@ -73,7 +75,7 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
 
     for (int j = 0; j < k; j++)
     {
-        pair<int, unordered_set<int>> commonNode = findMostCommonNode(R);
+        pair<int, vector<int>> commonNode = findMostCommonNode(R);
         seeds.insert(commonNode.first);
         for (it = commonNode.second.begin(); it != commonNode.second.end(); it++)
         {
