@@ -15,7 +15,7 @@ def convert_to_csv(filename, num_trials):
     current_num_nodes = -1
     for line in lines:
         if 'Trial' in line:
-            current_num_nodes = int(line.split('.')[0].split('_')[-1])
+            current_num_nodes = int(line.split('_')[-1].split('.')[0])
         elif 'findKSeeds' in line:
             data[current_num_nodes].append(float(line.split(' ')[-1]) * 1e-6)
 
