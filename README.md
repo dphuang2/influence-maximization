@@ -1,6 +1,8 @@
 # Influence Maximization
 by Tim Murray and Dylan Huang
 
+TIM and IMM implemented in serial and parallel
+
 # Parallel algorithm
 ## Opportunity
 We noticed that almost all of the computation time was dedicated to generating
@@ -69,3 +71,6 @@ for j = 1 to k
 end
 return S
 ```
+
+### Performance comparison
+![performance](analysis/final/performance.png)
