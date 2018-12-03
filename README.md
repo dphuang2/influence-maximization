@@ -66,8 +66,8 @@ Initialize a node histogram H
 Parallel for generate theta RR sets and insert into R and update H # O(1)
 for j = 1 to k
     Identify the node v with max reduction on H # O(logn)
-    Add v in to S
-    Parallel for over theta sets to update node histogram # O(1)
+    Add v into S
+    Parallel for over theta sets to update node histogram # O(n)
 end
 return S
 ```
