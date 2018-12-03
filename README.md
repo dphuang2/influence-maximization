@@ -73,4 +73,4 @@ return S
 ```
 
 ### Performance comparison
-![performance](analysis/final/performance.png)
+![performance](/analysis/final/performance.png)
