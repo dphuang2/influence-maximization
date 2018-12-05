@@ -112,6 +112,7 @@ CSR<float> *covertToCSR(vector<vector<string>> rawData)
 
 void Benchmark::run(int k)
 {
+    setbuf(stdout, NULL);
     for (int file = 0; file < files.size(); file++)
     {
         string filepath = files[file];
