@@ -110,7 +110,7 @@ CSR<float> *covertToCSR(vector<vector<string>> rawData)
     return graph;
 }
 
-void Benchmark::run()
+void Benchmark::run(int k)
 {
     for (int file = 0; file < files.size(); file++)
     {
@@ -132,10 +132,10 @@ void Benchmark::run()
         {
             printf("Trial %d - %s\n", i, filepath.c_str());
             gettimeofday(&t1, NULL);
-            unordered_set<int> seeds = findKSeeds(graph, K_CONSTANT);
+            unordered_set<int> seeds = findKSeeds(graph, k);
             gettimeofday(&t2, NULL);
             unordered_set<int>::iterator it;
-            printf("findKSeeds: ");
+            printf("findKSeeds (%d): ", k);
             for (it = seeds.begin(); it != seeds.end(); it++)
             {
                 cout << *it << " ";
@@ -145,6 +145,14 @@ void Benchmark::run()
         delete graph;
     }
 }
+
+void Benchmark::runMany(int k) 
+{
+    for (int i = 1; i <= k; i++)
+        run(i);
+}
+
+
 
 void Benchmark::setNodeSelectionFunction(pair<unordered_set<int>, int> (*func)(CSR<float> *graph, int k, double theta))
 {

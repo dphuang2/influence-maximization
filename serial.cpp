@@ -89,6 +89,6 @@ int main(int argc, char **argv)
 {
     Benchmark b;
     b.setNodeSelectionFunction(nodeSelection);
-    b.run();
+    b.runMany();
     return 0;
 }

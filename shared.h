@@ -24,8 +24,8 @@
 #define AUXILIARY_NODE_ID -1
 #define L_CONSTANT 1
 #define EPSILON_CONSTANT 0.2
-#define K_CONSTANT 10
-#define NUM_TRIALS 100
+#define K_CONSTANT 20
+#define NUM_TRIALS 50
 #define NUM_ROWS_PER_BATCH 100000
 
 #define BLOCK_SIZE 512
@@ -55,7 +55,8 @@ class Benchmark
     Benchmark();
     unordered_set<int> findKSeeds(CSR<float> *graph, int k);
     double findTheta(CSR<float> *graph, int n, int k, double e, double l);
-    void run();
+    void run(int k = K_CONSTANT);
+    void runMany(int k = K_CONSTANT);
     void setNodeSelectionFunction(pair<unordered_set<int>, int> (*func)(CSR<float> *graph, int k, double theta));
 };
 
