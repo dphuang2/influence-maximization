@@ -42,3 +42,8 @@ if __name__=="__main__":
 
     with open(sys.argv[1] + '.pickle', 'wb') as fp:
         pickle.dump(csr, fp)
+
+    with open(sys.argv[1] + '.csv', 'wb') as fp:
+        fp.write(" ".join(str(i) for i in csr[0]) + '\n')
+        fp.write(" ".join(str(i) for i in csr[1]) + '\n')
+        fp.write(" ".join(str(i) for i in csr[2]))
