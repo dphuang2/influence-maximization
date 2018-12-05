@@ -125,7 +125,6 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
 {
     unordered_set<int>::iterator it;
     unordered_set<int> seeds;
-    map<int, unordered_set<int>> R;
     float *deviceDataFloat;
     bool *deviceDataBool;
     int *deviceRows;
