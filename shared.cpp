@@ -28,11 +28,20 @@ double calculateLambdaPrime(int n, int k, double l, double eps)
     return (2.0 + 2.0/3.0 * eps) * (log(nCr(n, k)) + l * log(n) * log(log2(n))) * n * pow(eps, -2);
 }
 
+double calculateLambdaStar(int n, int k, double l, double eps) 
+{
+
+    double alpha = sqrt(l * log(n) + log(2));
+    double beta = sqrt((1 - (1 / M_E)) * (log(nCr(n, k)) + l * log(n) + log(2)));
+    return 2 * n * pow(((1 - (1 / M_E)) * alpha + beta), 2) * pow(eps,-2);
+}
+
 double Benchmark::findTheta(CSR<float> *graph, int n, int k, double e, double l)
 {
     double lb = 1;
     double eps = e * sqrt(2);
     double lam = calculateLambdaPrime(n, k, l, eps);
+    double lamStar = calculateLambdaStar(n, k, l, e);
 
     for (int i = 0; i < ceil(log2(n)) - 1; i++)
     {
@@ -41,9 +50,9 @@ double Benchmark::findTheta(CSR<float> *graph, int n, int k, double e, double l)
         int uncovered = nodeSelection(graph, k, theta).second;
         double frac = (theta - uncovered) / theta;
         if (n * frac >= (1 + eps) * x)
-            return lam / (n * frac / (1 + eps));
+            return lamStar / (n * frac / (1 + eps));
     }
-    return lam;
+    return lamStar;
 }
 
 bool fileExists(const std::string &name)
