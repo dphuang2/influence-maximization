@@ -135,7 +135,7 @@ void Benchmark::run(int k)
             unordered_set<int> seeds = findKSeeds(graph, k);
             gettimeofday(&t2, NULL);
             unordered_set<int>::iterator it;
-            printf("findKSeeds (%d): ", k);
+            printf("findKSeeds(%d)[%s]: ", k, filepath.c_str());
             for (it = seeds.begin(); it != seeds.end(); it++)
             {
                 cout << *it << " ";
