@@ -172,7 +172,7 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
     CUDA_CHECK(cudaMalloc((void **)&deviceStates, numRowsPerBatch * sizeof(curandState)));
     dim3 dimGrid((numRowsPerBatch / BLOCK_SIZE) + 1, 1, 1);
     dim3 dimBlock(BLOCK_SIZE, 1, 1);
-    init_rng<<<dimGrid, dimBlock>>>(numRowsPerBatch, deviceStates, 1, 0);
+    init_rng<<<dimGrid, dimBlock>>>(numRowsPerBatch, deviceStates, rand(), 0);
     CUDA_CHECK(cudaPeekAtLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -265,6 +265,7 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
 
 int main(int argc, char **argv)
 {
+    srand(time(NULL));
     Benchmark b;
     b.setNodeSelectionFunction(nodeSelection);
     b.runMany();
