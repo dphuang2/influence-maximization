@@ -187,6 +187,7 @@ unordered_set<int> Benchmark::findKSeeds(CSR<float> *graph, int k)
 
 Benchmark::Benchmark()
 {
+    srand(time(NULL));
     files.push_back("datasets/random_graph_20.txt");
     files.push_back("datasets/random_graph_30.txt");
     files.push_back("datasets/random_graph_40.txt");

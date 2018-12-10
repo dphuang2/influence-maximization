@@ -87,7 +87,6 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
 
 int main(int argc, char **argv)
 {
-    srand(time(NULL));
     Benchmark b;
     b.setNodeSelectionFunction(nodeSelection);
     b.runMany();
