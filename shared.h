@@ -84,3 +84,5 @@ CSR<float> *covertToCSR(vector<vector<string>> rawData);
 bool fileExists(const std::string &name);
 
 unordered_set<int> findKSeeds(CSR<float> *graph, int k);
+
+long int calcTimeDiff(struct timeval t1, struct timeval t2);
