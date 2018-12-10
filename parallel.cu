@@ -129,6 +129,7 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
     bool *deviceDataBool;
     int *deviceRows;
     int *deviceCols;
+    size_t mem_free, mem_total;
     int *deviceNodeHistogram;
     int *hostNodeHistogram;
     int *deviceUncovered;
@@ -155,19 +156,23 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
     CUDA_CHECK(cudaMemset(deviceNodeHistogram, 0, sizeOfNodeHistogram));
     hostNodeHistogram = (int*) malloc(sizeOfNodeHistogram);
 
+    // Calculate number of rows per batch
+    CUDA_CHECK(cudaMemGetInfo(&mem_free, &mem_total));
+    int numRowsPerBatch = (mem_free / 2) / ((sizeof(bool) + sizeof(curandState)) * numNodes);
+
     // Calculate number of batches
-    int numBatches = ceil(theta / NUM_ROWS_PER_BATCH);
+    int numBatches = ceil(theta / numRowsPerBatch);
 
     // Initialize processed rows output
-    long long int sizeOfProcessedRows = sizeof(bool) * NUM_ROWS_PER_BATCH * numNodes;
+    long long int sizeOfProcessedRows = sizeof(bool) * numRowsPerBatch * numNodes;
     CUDA_CHECK(cudaMalloc((void **)&deviceProcessedRows, sizeOfProcessedRows));
     hostProcessedRows = (bool *)malloc(sizeOfProcessedRows);
 
     // Initialize RNG States
-    CUDA_CHECK(cudaMalloc((void **)&deviceStates, NUM_ROWS_PER_BATCH * sizeof(curandState)));
-    dim3 dimGrid((NUM_ROWS_PER_BATCH / BLOCK_SIZE) + 1, 1, 1);
+    CUDA_CHECK(cudaMalloc((void **)&deviceStates, numRowsPerBatch * sizeof(curandState)));
+    dim3 dimGrid((numRowsPerBatch / BLOCK_SIZE) + 1, 1, 1);
     dim3 dimBlock(BLOCK_SIZE, 1, 1);
-    init_rng<<<dimGrid, dimBlock>>>(NUM_ROWS_PER_BATCH, deviceStates, 1, 0);
+    init_rng<<<dimGrid, dimBlock>>>(numRowsPerBatch, deviceStates, 1, 0);
     CUDA_CHECK(cudaPeekAtLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -181,7 +186,7 @@ pair<unordered_set<int>, int> nodeSelection(CSR<float> *graph, int k, double the
         CUDA_CHECK(cudaMemset(deviceProcessedRows, false, sizeOfProcessedRows));
 
         // Process the minimum number of rows
-        int numRowsToProcess = min(NUM_ROWS_PER_BATCH, (int)ceil(theta) - numRowsProcessed);
+        int numRowsToProcess = min(numRowsPerBatch, (int)ceil(theta) - numRowsProcessed);
 
         // Launch RR generation kernel
         dimGrid = dim3(ceil(float(numRowsToProcess) / BLOCK_SIZE), 1, 1);
