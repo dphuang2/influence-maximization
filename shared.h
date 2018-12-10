@@ -26,7 +26,6 @@
 #define EPSILON_CONSTANT 0.2
 #define K_CONSTANT 20
 #define NUM_TRIALS 1
-#define NUM_ROWS_PER_BATCH 100000
 
 #define BLOCK_SIZE 512
 #define TILE_X_3D 4
