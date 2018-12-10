@@ -61,6 +61,12 @@ bool fileExists(const std::string &name)
     return (stat(name.c_str(), &buffer) == 0);
 }
 
+long int calcTimeDiff(struct timeval t1, struct timeval t2)
+{
+    return ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec);
+}
+
+
 /*
  * Parses through csv file line by line and returns the data
  * in vector of vector of strings.
@@ -141,7 +147,7 @@ void Benchmark::run(int k)
             {
                 cout << *it << " ";
             }
-            printf("- %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
+            printf("- %ld\n", calcTimeDiff(t1, t2));
         }
         delete graph;
     }
@@ -169,12 +175,12 @@ unordered_set<int> Benchmark::findKSeeds(CSR<float> *graph, int k)
     gettimeofday(&t1, NULL);
     double theta = findTheta(graph, n, k, EPSILON_CONSTANT, L_CONSTANT);
     gettimeofday(&t2, NULL);
-    printf("findTheta: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
+    printf("findTheta = %f: %ld\n", theta, calcTimeDiff(t1, t2));
 
     gettimeofday(&t1, NULL);
     unordered_set<int> selectedNodes = nodeSelection(graph, k, theta).first;
     gettimeofday(&t2, NULL);
-    printf("nodeSelection: %ld\n", ((t2.tv_sec - t1.tv_sec) * 1000000L + t2.tv_usec - t1.tv_usec));
+    printf("nodeSelection: %ld\n", calcTimeDiff(t1, t2));
 
     return selectedNodes;
 }
